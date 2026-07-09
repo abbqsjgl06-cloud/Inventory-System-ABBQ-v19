@@ -1,0 +1,27 @@
+{
+    "id": "/",
+    "name": "Stock Opname ABBQ",
+    "short_name": "ABBQ SO",
+    "description": "Aplikasi Stock Opname ABBQ berbasis PWA",
+    "lang": "id-ID",
+    "start_url": "./index.html",
+    "scope": "./",
+    "display": "standalone",
+    "orientation": "portrait",
+    "background_color": "#ffffff",
+    "theme_color": "#FFD400",
+    "icons": [
+        {
+            "src": "abbq_logo.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "any maskable"
+        },
+        {
+            "src": "abbq_logo.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "any maskable"
+        }
+    ]
+}

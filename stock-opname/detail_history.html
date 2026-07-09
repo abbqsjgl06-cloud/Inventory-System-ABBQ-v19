@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0">
+
+    <title>Detail Stock Opname</title>
+
+    <link
+        rel="stylesheet"
+        href="style.css">
+
+</head>
+
+<body>
+
+    <!-- NOTIFIKASI -->
+    <div
+        id="notif"
+        class="notif">
+    </div>
+
+    <div class="container">
+
+        <h2 id="judulHistory">
+
+            DETAIL STOCK OPNAME
+
+        </h2>
+
+        <table class="table-stock">
+
+            <thead>
+
+                <tr>
+
+                    <th>No</th>
+
+                    <th>Kode</th>
+
+                    <th>Item</th>
+
+                    <th>Konv</th>
+
+                    <th>UOM</th>
+
+                    <th>PCS/Gr</th>
+
+                </tr>
+
+            </thead>
+
+            <tbody id="tableBody">
+
+            </tbody>
+
+        </table>
+
+        <br>
+
+        <button onclick="updateData()">
+
+            UPDATE DATA
+
+        </button>
+
+        <br><br>
+
+        <button onclick="exportHistoryExcel()">
+
+            EXPORT EXCEL
+
+        </button>
+
+        <br><br>
+
+        <button onclick="window.location.href='history.html'">
+
+            KEMBALI
+
+        </button>
+
+    </div>
+
+    <div class="watermark">
+
+        © 2026 Fdl
+
+    </div>
+
+    <!-- FIREBASE -->
+    <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script>
+    <script src="../shared/firebase-config.js"></script>
+<script>window.AUTH_GUARD_DEPTH = 1;</script>
+<script src="../shared/auth-guard.js?v=18"></script>
+    <script src="../shared/inv-db.js?v=18"></script>
+
+    <!-- XLSX -->
+    <script src="libraries/xlsx.full.min.js"></script>
+
+    <!-- DETAIL -->
+    <script src="detail_history.js"></script>
+
+</body>
+
+</html>

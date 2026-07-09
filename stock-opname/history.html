@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0">
+
+    <title>Riwayat Stock Opname</title>
+
+    <link rel="stylesheet" href="style.css">
+
+</head>
+
+<body>
+
+<a href="../index.html" style="position:fixed;top:14px;left:14px;z-index:999;background:rgba(0,0,0,.35);color:#fff;text-decoration:none;font-size:13px;font-weight:600;padding:7px 12px;border-radius:20px;">← Menu Utama</a>
+
+<div class="container">
+
+    <h2>RIWAYAT STOCK OPNAME</h2>
+
+    <div class="filter-box">
+
+        <label>Dari Tanggal</label>
+
+        <input
+            type="date"
+            id="startDate">
+
+        <label>Sampai Tanggal</label>
+
+        <input
+            type="date"
+            id="endDate">
+
+        <button onclick="filterHistory()">
+            FILTER
+        </button>
+
+        <button onclick="resetFilter()">
+            RESET
+        </button>
+
+    </div>
+
+    <br>
+
+    <div id="adminDeleteBar" style="display:none;margin-bottom:10px;">
+        <button onclick="deleteSelectedHistory()" style="background:#C23B2E;">
+            🗑 Hapus Terpilih (<span id="selectedDeleteCount">0</span>)
+        </button>
+    </div>
+
+    <div id="historyList">
+
+        <div class="empty-history">
+
+            <div class="empty-icon">
+                📋
+            </div>
+
+            <h3>
+                Belum ada data ditampilkan
+            </h3>
+
+            <p>
+                Pilih tanggal terlebih dahulu,
+                kemudian tekan tombol FILTER.
+            </p>
+
+        </div>
+
+    </div>
+
+    <br>
+
+    <button onclick="window.location.href='index.html'">
+
+        KEMBALI KE MENU UTAMA
+
+    </button>
+
+</div>
+
+<div class="watermark">
+    © 2026 Fdl
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script>
+<script src="../shared/firebase-config.js"></script>
+<script>window.AUTH_GUARD_DEPTH = 1;</script>
+<script src="../shared/auth-guard.js?v=18"></script>
+<script src="../shared/inv-db.js?v=18"></script>
+<script src="history.js"></script>
+
+</body>
+
+</html>

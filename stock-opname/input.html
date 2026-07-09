@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0">
+
+    <title>Input Stock Opname ABBQ</title>
+
+    <link
+        rel="stylesheet"
+        href="style.css">
+
+</head>
+
+<body>
+
+    <!-- NOTIFIKASI -->
+    <div
+        id="notif"
+        class="notif">
+    </div>
+
+    <div class="container">
+
+        <h2 id="judulHalaman">
+
+            LOADING...
+
+        </h2>
+
+        <div id="adminUploadBox" style="display:none;background:#FFF7E0;border:2px dashed #f1c40f;border-radius:10px;padding:14px;margin:15px 0;">
+            <b>📥 Upload Qty dari Excel (Admin)</b>
+            <p style="font-size:12px;color:#666;margin:6px 0 10px;">File Excel 2 kolom: <b>Kode</b>, <b>Qty</b>. Cocok untuk mengejar backlog input tanggal lama.</p>
+            <input type="file" id="adminUploadFile" accept=".xlsx,.xls,.csv">
+            <div id="adminUploadResult" style="font-size:13px;margin-top:8px;"></div>
+        </div>
+
+        <input type="text" id="searchItem" placeholder="🔍 Cari item atau kode..." oninput="filterTable()" style="width:100%;padding:12px;margin:15px 0;font-size:16px;border:2px solid #f1c40f;border-radius:8px;">
+
+        <table class="table-stock">
+
+            <thead>
+
+                <tr>
+
+                    <th>No</th>
+
+                    <th>Kode</th>
+
+                    <th>Item</th>
+
+                    <th>Konv</th>
+
+                    <th>UOM</th>
+
+                    <th>PCS/Gr</th>
+
+                </tr>
+
+            </thead>
+
+            <tbody id="tableBody">
+
+            </tbody>
+
+        </table>
+
+        <br>
+
+        <button onclick="simpanData()">
+
+            SIMPAN
+
+        </button>
+
+        <br><br>
+
+        <button onclick="resetData()">
+
+            RESET
+
+        </button>
+
+        <br><br>
+
+        <button onclick="exportExcel()">
+
+            EXPORT EXCEL
+
+        </button>
+
+        <br><br>
+
+        <button
+            onclick="window.location.href='history.html'">
+
+            RIWAYAT
+
+        </button>
+
+        <br><br>
+
+        <button
+            onclick="window.location.href='index.html'">
+
+            MENU UTAMA
+
+        </button>
+
+    </div>
+
+    <div class="watermark">
+
+        © 2026 Fdl
+
+    </div>
+
+    <!-- FIREBASE -->
+    <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script>
+    <script src="../shared/firebase-config.js"></script>
+<script>window.AUTH_GUARD_DEPTH = 1;</script>
+<script src="../shared/auth-guard.js?v=18"></script>
+    <script src="../shared/inv-db.js?v=18"></script>
+
+    <!-- XLSX -->
+    <script src="libraries/xlsx.full.min.js"></script>
+
+    <!-- EXPORT -->
+    <script src="export.js"></script>
+
+    <!-- INPUT -->
+    <script src="input.js"></script>
+
+</body>
+
+</html>

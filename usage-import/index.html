@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Import Usage — Inventory ABBQ</title>
+<link rel="icon" href="../logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../shared/inv-style.css?v=18">
+<style>
+  :root{ --accent:#0E8C8C; --accent-tint:#E1F2F2; }
+  thead th{background:var(--accent-tint);}
+  .drop{
+    border:2px dashed var(--line);
+    border-radius:14px;
+    padding:28px 16px;
+    text-align:center;
+    color:var(--muted);
+    font-size:13px;
+    margin-bottom:14px;
+  }
+  .file-input{display:none;}
+  .step-badge{
+    display:inline-flex;align-items:center;justify-content:center;
+    width:20px;height:20px;border-radius:50%;
+    background:var(--accent);color:#fff;font-size:11px;font-weight:800;
+    margin-right:8px;flex:none;
+  }
+  .flow-step{display:flex;align-items:flex-start;gap:0;font-size:12px;color:var(--muted);margin-bottom:8px;}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <a class="back-btn" href="../index.html">←</a>
+  <div class="topbar-title">
+    <div class="topbar-eyebrow">ABBQ Indonesia</div>
+    <div class="topbar-h1">Import Usage (Data Penjualan)</div>
+  </div>
+</header>
+
+<main>
+
+  <div class="panel">
+    <div class="panel-title">Cara Kerja</div>
+    <div class="flow-step"><span class="step-badge">1</span> Upload file penjualan menu (format kolom: Date, Code, Desc, Major, Family, Qty, Discount, Net Sales, RVC, Order Type)</div>
+    <div class="flow-step"><span class="step-badge">2</span> Sistem menjumlahkan Qty terjual per kode menu</div>
+    <div class="flow-step"><span class="step-badge">3</span> Setiap menu diterjemahkan ke bahan baku memakai BOM di Master Data</div>
+    <div class="flow-step"><span class="step-badge">4</span> Hasil usage per bahan baku otomatis dipakai di Laporan Variance</div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-title">Upload File Penjualan</div>
+    <label class="drop" for="fileInput">
+      📄 Ketuk untuk pilih file .xlsx / .xls / .csv<br>
+      <span id="fileName" style="font-weight:600;color:var(--ink);"></span>
+    </label>
+    <input type="file" id="fileInput" class="file-input" accept=".xlsx,.xls,.csv">
+
+    <div class="field">
+      <label>Nama Periode (label laporan)</label>
+      <input type="text" id="periodLabel" placeholder="cth Juni 2026">
+    </div>
+
+    <div id="previewBox" style="display:none;">
+      <div class="summary-grid">
+        <div class="summary-card">
+          <div class="summary-label">Baris Terbaca</div>
+          <div class="summary-value" id="rowsRead">0</div>
+        </div>
+        <div class="summary-card">
+          <div class="summary-label">Menu Unik</div>
+          <div class="summary-value" id="menuUnik">0</div>
+        </div>
+        <div class="summary-card">
+          <div class="summary-label">Menu Cocok BOM</div>
+          <div class="summary-value" id="menuMatched">0</div>
+        </div>
+        <div class="summary-card">
+          <div class="summary-label">Menu Tanpa BOM</div>
+          <div class="summary-value neg" id="menuUnmatched">0</div>
+        </div>
+      </div>
+      <button class="btn btn-primary" onclick="confirmImport()">Simpan Hasil Usage</button>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-title">Riwayat Import</div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Tanggal Import</th><th>Periode</th><th>File</th><th class="num">Baris</th><th class="num">Menu Tanpa BOM</th><th></th></tr></thead>
+        <tbody id="importHistoryBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+</main>
+
+<div class="notif" id="notif"></div>
+
+<script src="../shared/xlsx.full.min.js?v=18"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script>
+<script src="../shared/firebase-config.js"></script>
+<script>window.AUTH_GUARD_DEPTH = 1;</script>
+<script src="../shared/auth-guard.js?v=18"></script>
+<script src="../shared/seed-data.js?v=18"></script>
+<script src="../shared/inv-db.js?v=18"></script>
+<script src="app.js?v=18"></script>
+</body>
+</html>

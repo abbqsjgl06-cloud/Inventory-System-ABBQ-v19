@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ABBQ Waste Tracker</title>
+<meta name="theme-color" content="#f2b400">
+<link rel="manifest" href="manifest.json">
+<link rel="stylesheet" href="style.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<header class="topbar">
+  <img src="logo.png" class="logo" alt="ABBQ Logo">
+  <h1>Waste Tracker</h1>
+  <a href="../index.html" style="position:fixed;top:14px;left:14px;z-index:999;background:rgba(0,0,0,.35);color:#fff;text-decoration:none;font-size:13px;font-weight:600;padding:7px 12px;border-radius:20px;backdrop-filter:blur(4px);">← Menu</a>
+</header>
+
+<main>
+
+<section class="dashboard">
+  <div class="card"><h2 id="totalEntry">0</h2><span>Total Entry</span></div>
+  <div class="card"><h2 id="todayWaste">0</h2><span>Hari Ini</span></div>
+  <div class="card"><h2 id="totalPhoto">0</h2><span>Total Foto</span></div>
+</section>
+
+<section class="dashboard-detail">
+  <div class="card">
+    <h3>Top 5 Waste Item</h3>
+    <div id="topItemList"></div>
+  </div>
+  <div class="card">
+    <h3>Top 5 Category</h3>
+    <div id="categoryList"></div>
+  </div>
+</section>
+
+<section class="inputForm">
+<h2>Input Waste</h2>
+
+<div id="adminWasteUploadBox" style="display:none;background:#FFF7E0;border:2px dashed #f1c40f;border-radius:10px;padding:14px;margin-bottom:16px;">
+  <b>📥 Upload Waste dari Excel (Admin)</b>
+  <p style="font-size:12px;color:#666;margin:6px 0 10px;">
+    Kolom: <b>Tanggal (YYYY-MM-DD), Shift, PIC, Kode, Qty, UOM, Kategori, Reason</b>.
+    Cocok untuk mengejar backlog data waste tanggal lama.
+  </p>
+  <input type="file" id="adminWasteUploadFile" accept=".xlsx,.xls,.csv">
+  <div id="adminWasteUploadResult" style="font-size:13px;margin-top:8px;"></div>
+</div>
+
+<div class="formGroup">
+<label>Tanggal</label>
+<input type="date" id="inputDate">
+</div>
+
+<div class="formGroup">
+<label>Shift</label>
+<select id="shift">
+<option>Opening</option><option>Closing</option>
+</select>
+</div>
+
+<div class="formGroup">
+<label>PIC</label>
+<input id="pic" placeholder="Nama PIC">
+</div>
+
+<div class="formGroup">
+<label>Cari Item</label>
+<input type="text" id="searchItem" autocomplete="off" placeholder="Ketik kode atau nama item">
+<div id="searchResult" class="searchResult"></div>
+</div>
+
+<input type="hidden" id="itemCode">
+<input type="hidden" id="itemName">
+
+<div class="formGroup">
+<label>UOM</label>
+<input id="uom" readonly>
+</div>
+
+<div class="formGroup">
+<label>Qty</label>
+<input id="qty" type="number" min="0">
+</div>
+
+<div class="formGroup">
+<label>Kategori</label>
+<select id="category">
+<option>Expired</option>
+<option>Over Production</option>
+<option>Spoilage</option>
+<option>Returned</option>
+<option>Cooking Error</option>
+<option>Customer Complaint</option>
+<option>Others</option>
+</select>
+</div>
+
+<div class="formGroup">
+<label>Reason</label>
+<textarea id="reason"></textarea>
+</div>
+
+
+
+<div class="formGroup">
+<label>Foto</label>
+<input id="photoInput" type="file" accept="image/*" capture="environment" style="display:none;">
+<input id="photoInputGallery" type="file" accept="image/*" style="display:none;">
+<div style="display:flex;gap:8px;">
+  <button type="button" id="takePhotoBtn" class="secondary" style="flex:1;">📷 Ambil Foto</button>
+  <button type="button" id="pickGalleryBtn" class="secondary" style="flex:1;">🖼️ Dari Galeri</button>
+</div>
+<img id="photoPreview" class="photoPreview" alt="">
+<button type="button" id="removePhotoBtn" class="secondary">Hapus Foto</button>
+</div>
+
+<button id="saveBtn" class="primary">Simpan Waste</button>
+</section>
+
+<section class="history">
+<h2>History</h2>
+<div class="filter">
+<input type="date" id="fromDate">
+<input type="date" id="toDate">
+<button id="historyBtn" class="primary">Lihat History</button>
+</div>
+</section>
+
+</main>
+
+<footer class="footer">
+Inventory ABBQ — Waste Tracker<br>
+FDL © 2026
+</footer>
+
+<div id="toast" class="toast"></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script>
+<script src="../shared/firebase-config.js"></script>
+<script>window.AUTH_GUARD_DEPTH = 1;</script>
+<script src="../shared/auth-guard.js?v=18"></script>
+<script src="../shared/inv-db.js?v=18"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
+<script src="helper.js"></script>
+<script src="database.js"></script>
+<script src="ui.js"></script>
+<script src="masterData.js"></script>
+<script src="master.js"></script>
+<script src="camera.js"></script>
+<script src="input.js"></script>
+<script src="history.js"></script>
+<script src="dashboard.js"></script>
+<script src="export.js"></script>
+<script src="app.js"></script>
+
+</body>
+</html>

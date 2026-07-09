@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0">
+
+    <title>ABBQ Stock Opname</title>
+
+    <link
+        rel="stylesheet"
+        href="style.css">
+
+    <link
+        rel="manifest"
+        href="manifest.json">
+
+    <meta
+        name="theme-color"
+        content="#FFD400">
+
+</head>
+
+<body>
+
+    <a href="../index.html" style="position:fixed;top:14px;left:14px;z-index:999;background:rgba(0,0,0,.35);color:#fff;text-decoration:none;font-size:13px;font-weight:600;padding:7px 12px;border-radius:20px;">← Menu Utama</a>
+
+    <!-- NOTIFIKASI -->
+    <div
+        id="notif"
+        class="notif">
+    </div>
+
+    <div class="container">
+
+        <!-- LOGO -->
+        <img
+            src="abbq_logo.png"
+            class="logo"
+            alt="ABBQ Logo">
+
+        <h1>STOCK OPNAME ABBQ</h1>
+
+        <!-- PIC -->
+        <div class="form-group">
+
+            <label>PIC</label>
+
+            <input
+                type="text"
+                id="operator"
+                placeholder="Masukkan Nama PIC">
+
+        </div>
+
+        <!-- KATEGORI -->
+        <div class="form-group">
+
+            <label>Kategori</label>
+
+            <select id="kategori">
+
+                <option value="">
+                    -- Pilih Kategori --
+                </option>
+
+                <option value="Kitchen">
+                    Kitchen
+                </option>
+
+                <option value="Frontliner">
+                    Frontliner
+                </option>
+
+            </select>
+
+        </div>
+
+        <!-- TYPE -->
+        <div class="form-group">
+
+            <label>Type</label>
+
+            <select id="type">
+
+                <option value="">
+                    -- Pilih Type --
+                </option>
+
+                <option value="Daily">
+                    Daily
+                </option>
+
+                <option value="WM">
+                    Weekly / Monthly
+                </option>
+
+            </select>
+
+        </div>
+
+        <!-- TANGGAL -->
+        <div class="form-group">
+
+            <label>Tanggal</label>
+
+            <input
+                type="date"
+                id="tanggal">
+
+        </div>
+
+        <!-- ADMIN UPLOAD (Kitchen maupun Frontliner) -->
+        <div id="adminUploadBox" style="display:none;background:#FFF7E0;border:2px dashed #f1c40f;border-radius:10px;padding:14px;margin:16px 0;text-align:left;">
+            <b>📥 Upload Data Stock Opname (Admin)</b>
+            <p style="font-size:12px;color:#666;margin:6px 0 10px;">
+                Isi PIC, Kategori, Type, dan Tanggal di atas dulu, lalu upload file Excel
+                2 kolom: <b>Kode, Qty</b>. Berlaku untuk Kitchen maupun Frontliner —
+                sistem otomatis pakai daftar item sesuai Kategori + Type yang dipilih.
+                Cocok untuk mengejar backlog data lama tanpa buka tabel manual.
+            </p>
+            <input type="file" id="adminStockUploadFile" accept=".xlsx,.xls,.csv">
+            <div id="adminStockUploadResult" style="font-size:13px;margin-top:8px;"></div>
+        </div>
+
+        <br>
+
+        <!-- MULAI -->
+        <button onclick="mulaiInput()">
+
+            MULAI INPUT STOCK
+
+        </button>
+
+        <br><br>
+
+        <!-- HISTORY -->
+        <button
+            onclick="window.location.href='history.html'">
+
+            RIWAYAT STOCK OPNAME
+
+        </button>
+
+        <br><br>
+
+        <!-- INSTALL -->
+        <button
+            id="installBtn"
+            style="display:none;">
+
+            INSTALL APP
+
+        </button>
+
+    </div>
+
+    <div class="watermark">
+
+        Inventory ABBQ — Stock Opname · FDL © 2026
+
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script>
+    <script src="../shared/firebase-config.js"></script>
+    <script>window.AUTH_GUARD_DEPTH = 1;</script>
+    <script src="../shared/auth-guard.js?v=19"></script>
+    <script src="../shared/inv-db.js?v=19"></script>
+    <script src="libraries/xlsx.full.min.js"></script>
+    <script src="app.js"></script>
+
+</body>
+
+</html>
