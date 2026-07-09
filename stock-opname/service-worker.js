@@ -2,7 +2,7 @@
 // SERVICE WORKER FINAL
 // =====================================
 
-const CACHE_NAME = "abbq-stock-v6";
+const CACHE_NAME = "abbq-stock-v7";
 
 const urlsToCache = [
 

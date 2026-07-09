@@ -180,6 +180,68 @@ button:hover{
 }
 
 /* =========================
+   HISTORY TABLE (compact)
+========================= */
+
+.history-table-wrap{
+    overflow-x:auto;
+    background:#fff;
+    border:1px solid #ddd;
+    border-radius:12px;
+    box-shadow:0 2px 5px rgba(0,0,0,.1);
+}
+
+.history-table{
+    width:100%;
+    border-collapse:collapse;
+    font-size:13px;
+    min-width:640px;
+}
+
+.history-table thead th{
+    background:#FFF3C4;
+    text-align:left;
+    padding:10px 8px;
+    font-weight:700;
+    font-size:11px;
+    text-transform:uppercase;
+    letter-spacing:.03em;
+    white-space:nowrap;
+    border-bottom:2px solid #f1c40f;
+}
+
+.history-table tbody td{
+    padding:9px 8px;
+    border-bottom:1px solid #eee;
+    white-space:nowrap;
+}
+
+.history-table tbody tr:hover{
+    background:#FFFBEA;
+}
+
+.eod-badge{
+    display:inline-block;
+    font-size:10px;
+    font-weight:700;
+    color:#1E5C36;
+    background:#E6F3EC;
+    border-radius:999px;
+    padding:2px 8px;
+    margin-left:6px;
+}
+
+.history-table .btn-buka{
+    background:#f1c40f;
+    border:none;
+    border-radius:8px;
+    padding:7px 14px;
+    font-weight:700;
+    font-size:12px;
+    cursor:pointer;
+}
+
+/* =========================
    FILTER
 ========================= */
 

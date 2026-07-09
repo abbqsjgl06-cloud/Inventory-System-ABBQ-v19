@@ -216,12 +216,13 @@ const InvDB = (() => {
         return get("eodSnapshots", dateStr);
     }
 
-    async function closeBusinessDay(dateStr, endingByCode, note) {
+    async function closeBusinessDay(dateStr, endingByCode, note, sessionIds) {
         const snapshot = {
             id: dateStr,
             date: dateStr,
             closedAt: new Date().toISOString(),
             endingByCode: endingByCode || {},
+            sessionIds: sessionIds || [],
             note: note || ""
         };
         await put("eodSnapshots", snapshot);

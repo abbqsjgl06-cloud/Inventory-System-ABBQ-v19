@@ -5,6 +5,7 @@
 
 let allData = [];
 let IS_ADMIN = false;
+let EOD_SESSION_IDS = new Set();
 
 document.addEventListener("authReady", (e) => {
     IS_ADMIN = e.detail.role === "admin";
@@ -42,7 +43,17 @@ document.addEventListener("DOMContentLoaded", async () => {
             console.log(`Migrasi: ${migration.migrated} riwayat lokal diunggah ke cloud.`);
         }
 
-        allData = await InvDB.getAll("stockOpname");
+        const [stockData, eodSnapshots] = await Promise.all([
+            InvDB.getAll("stockOpname"),
+            InvDB.getAll("eodSnapshots")
+        ]);
+
+        allData = stockData;
+
+        EOD_SESSION_IDS = new Set();
+        eodSnapshots.forEach(snap => {
+            (snap.sessionIds || []).forEach(id => EOD_SESSION_IDS.add(String(id)));
+        });
 
         if (historyList) {
 
@@ -106,92 +117,65 @@ function renderHistory(data) {
 
     }
 
-    let html = "";
+    // Urutkan terbaru dulu
+    const sorted = [...data].sort((a, b) =>
+        (b.tanggal || "").localeCompare(a.tanggal || "") ||
+        String(b.id).localeCompare(String(a.id))
+    );
 
-    data.forEach(item => {
+    let rows = "";
 
-        const pic =
-            item.pic ||
-            item.operator ||
-            "-";
+    sorted.forEach((item, i) => {
 
-        const kategori =
-            item.kategori ||
-            "-";
+        const pic = item.pic || item.operator || "-";
+        const kategori = item.kategori || "-";
+        const type = item.type || "-";
+        const tanggal = item.tanggal || "-";
+        const isClosed = EOD_SESSION_IDS.has(String(item.id));
 
-        const type =
-            item.type ||
-            "-";
-
-        const tanggal =
-            item.tanggal ||
-            "-";
-
-        const jumlah =
-            Array.isArray(item.items)
-                ? item.items.length
-                : 0;
-
-        // hanya jam
         let jam = "-";
-
         if (item.waktuInput) {
-
-            const split =
-                item.waktuInput.split(",");
-
-            jam =
-                split.length > 1
-                    ? split[1].trim()
-                    : item.waktuInput;
-
+            const split = item.waktuInput.split(",");
+            jam = split.length > 1 ? split[1].trim() : item.waktuInput;
         }
 
-        html += `
-
-            <div class="history-card">
-
-                <h3>
-                    ${kategori} - ${type}
-                </h3>
-
-                <p>
-                    <b>PIC :</b>
-                    ${pic}
-                </p>
-
-                <p>
-                    ${IS_ADMIN ? `<input type="checkbox" class="history-check" value="${item.id}" onchange="updateSelectedDeleteCount()" style="margin-right:8px;">` : ""}
-                    <b>Tanggal :</b>
-                    ${tanggal}
-                </p>
-
-                <p>
-                    <b>Jam :</b>
-                    ${jam}
-                </p>
-
-                <p>
-                    <b>Jumlah Item :</b>
-                    ${jumlah}
-                </p>
-
-                <button
-                    onclick="bukaData(${item.id})">
-
-                    BUKA DATA
-
-                </button>
-
-            </div>
-
-            <br>
-
+        rows += `
+            <tr>
+                <td>${IS_ADMIN ? `<input type="checkbox" class="history-check" value="${item.id}" onchange="updateSelectedDeleteCount()">` : ""}</td>
+                <td>${i + 1}</td>
+                <td>${kategori}</td>
+                <td>${type}</td>
+                <td>${pic}</td>
+                <td>${tanggal}</td>
+                <td>${jam}${isClosed ? `<span class="eod-badge">✓ End of Day</span>` : ""}</td>
+                <td><button class="btn-buka" onclick="bukaData(${item.id})">BUKA</button></td>
+            </tr>
         `;
 
     });
 
-    historyList.innerHTML = html;
+    historyList.innerHTML = `
+        <div class="history-table-wrap">
+            <table class="history-table">
+                <thead>
+                    <tr>
+                        <th></th>
+                        <th>No</th>
+                        <th>Kategori</th>
+                        <th>Tipe</th>
+                        <th>PIC</th>
+                        <th>Tanggal</th>
+                        <th>Jam</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${rows}
+                </tbody>
+            </table>
+        </div>
+    `;
+
     updateSelectedDeleteCount();
 
 }

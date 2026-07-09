@@ -280,7 +280,8 @@ async function closeEndOfDay(){
         endingByCode[r.code] = r.ending;
     });
 
-    const nextDate = await InvDB.closeBusinessDay(BUSINESS_DATE, endingByCode, "");
+    const endingIds = Array.from(document.querySelectorAll(".ending-check:checked")).map(el=>el.value);
+    const nextDate = await InvDB.closeBusinessDay(BUSINESS_DATE, endingByCode, "", endingIds);
 
     BUSINESS_DATE = nextDate;
     await refreshOpeningForPeriod();

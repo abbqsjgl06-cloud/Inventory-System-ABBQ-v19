@@ -169,7 +169,7 @@ async function closeToday(){
     }
 
     const endingByCode = sumSessionsByCode(endingIds);
-    const nextDate = await InvDB.closeBusinessDay(BUSINESS_DATE, endingByCode, "");
+    const nextDate = await InvDB.closeBusinessDay(BUSINESS_DATE, endingByCode, "", endingIds);
 
     toast(`✓ Hari ditutup. Business date sekarang: ${nextDate}`,"success");
 
