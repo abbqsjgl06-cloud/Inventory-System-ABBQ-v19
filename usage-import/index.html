@@ -7,7 +7,7 @@
 <link rel="icon" href="../logo.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="../shared/inv-style.css?v=18">
+<link rel="stylesheet" href="../shared/inv-style.css?v=21">
 <style>
   :root{ --accent:#0E8C8C; --accent-tint:#E1F2F2; }
   thead th{background:var(--accent-tint);}
@@ -50,6 +50,13 @@
     <div class="flow-step"><span class="step-badge">4</span> Hasil usage per bahan baku otomatis dipakai di Laporan Variance</div>
   </div>
 
+  <div class="panel" id="adminToolsBox" style="display:none;border:2px dashed var(--accent);">
+    <div class="panel-title">🛠 Alat Bantu Admin</div>
+    <button class="btn btn-secondary" onclick="downloadTemplate()" style="margin-bottom:10px;">⬇ Download Template Excel</button>
+    <button class="btn btn-secondary" onclick="showMenusWithoutBom()">📋 Lihat Menu Tanpa BOM</button>
+    <div id="noBomResult" style="display:none;margin-top:14px;"></div>
+  </div>
+
   <div class="panel">
     <div class="panel-title">Upload File Penjualan</div>
     <label class="drop" for="fileInput">
@@ -62,6 +69,8 @@
       <label>Nama Periode (label laporan)</label>
       <input type="text" id="periodLabel" placeholder="cth Juni 2026">
     </div>
+
+    <p id="dateWarning" style="display:none;font-size:12px;color:#8C2A1E;background:#FCEBE9;border-radius:8px;padding:10px 12px;margin-bottom:10px;"></p>
 
     <div id="previewBox" style="display:none;">
       <div class="summary-grid">
@@ -100,15 +109,15 @@
 
 <div class="notif" id="notif"></div>
 
-<script src="../shared/xlsx.full.min.js?v=18"></script>
+<script src="../shared/xlsx.full.min.js?v=21"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script>
 <script src="../shared/firebase-config.js"></script>
 <script>window.AUTH_GUARD_DEPTH = 1;</script>
-<script src="../shared/auth-guard.js?v=18"></script>
-<script src="../shared/seed-data.js?v=18"></script>
-<script src="../shared/inv-db.js?v=18"></script>
-<script src="app.js?v=18"></script>
+<script src="../shared/auth-guard.js?v=21"></script>
+<script src="../shared/seed-data.js?v=21"></script>
+<script src="../shared/inv-db.js?v=21"></script>
+<script src="app.js?v=21"></script>
 </body>
 </html>

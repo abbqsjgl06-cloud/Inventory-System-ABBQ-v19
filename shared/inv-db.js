@@ -230,9 +230,16 @@ const InvDB = (() => {
         const d = new Date(dateStr + "T00:00:00");
         d.setDate(d.getDate() + 1);
         const nextStr = d.toISOString().slice(0, 10);
-        await setBusinessDate(nextStr);
 
-        return nextStr;
+        // Don't move the tracked business date backward - only advance it
+        // if closing this date actually pushes it forward (handles admin
+        // catching up on an older, previously-skipped date).
+        const currentTracked = await getBusinessDate();
+        if (nextStr > currentTracked) {
+            await setBusinessDate(nextStr);
+        }
+
+        return await getBusinessDate();
     }
 
     async function reopenBusinessDay(dateStr) {

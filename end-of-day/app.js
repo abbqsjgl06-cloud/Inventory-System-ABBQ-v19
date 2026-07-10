@@ -1,11 +1,21 @@
 "use strict";
 
-let BUSINESS_DATE = null;
+let TRACKED_BUSINESS_DATE = null; // the officially auto-advancing business date
+let TARGET_DATE = null;           // the date currently shown/being closed (admin can change this)
 let STOCK_SESSIONS = [];
+let IS_ADMIN = false;
+
+document.addEventListener("authReady", (e) => {
+    IS_ADMIN = e.detail.role === "admin";
+    const box = document.getElementById("adminDateEditBox");
+    if(box) box.style.display = IS_ADMIN ? "block" : "none";
+});
 
 document.addEventListener("DOMContentLoaded", async () => {
     try {
-        BUSINESS_DATE = await InvDB.getBusinessDate();
+        TRACKED_BUSINESS_DATE = await InvDB.getBusinessDate();
+        TARGET_DATE = TRACKED_BUSINESS_DATE;
+        document.getElementById("targetDateInput").value = TARGET_DATE;
         renderBizDate();
 
         await InvDB.migrateLegacyStockOpname();
@@ -21,8 +31,18 @@ document.addEventListener("DOMContentLoaded", async () => {
 });
 
 function renderBizDate(){
-    const [y,m,d] = BUSINESS_DATE.split("-");
+    const [y,m,d] = TARGET_DATE.split("-");
     document.getElementById("bizDateDisplay").textContent = `${d}/${m}/${y}`;
+}
+
+async function applyTargetDate(){
+    const val = document.getElementById("targetDateInput").value;
+    if(!val){ toast("Pilih tanggal","error"); return; }
+    TARGET_DATE = val;
+    renderBizDate();
+    renderEndingSessionList();
+    await renderChecklist();
+    toast(`✓ Checklist dimuat untuk tanggal ${val}`,"success");
 }
 
 /* ================= WASTE (now centralized via Firestore "wasteRecords") ================= */
@@ -42,22 +62,22 @@ async function getAllWasteRecords(){
 async function renderChecklist(){
     const box = document.getElementById("checklistBox");
 
-    // 1. Stock Opname for this business date
-    const soSessions = STOCK_SESSIONS.filter(s => s.tanggal === BUSINESS_DATE);
+    // 1. Stock Opname for the target date
+    const soSessions = STOCK_SESSIONS.filter(s => s.tanggal === TARGET_DATE);
 
     // 2. Waste (optional)
     const wasteRecords = await getAllWasteRecords();
-    const wasteToday = wasteRecords.filter(r => r.date === BUSINESS_DATE);
+    const wasteToday = wasteRecords.filter(r => r.date === TARGET_DATE);
 
     // 3. Goods Receipt (optional)
-    const goodsToday = await InvDB.getByIndex("goodsReceipt", "date", BUSINESS_DATE);
+    const goodsToday = await InvDB.getByIndex("goodsReceipt", "date", TARGET_DATE);
 
     // 4. Transfer (optional)
-    const transferToday = await InvDB.getByIndex("transfer", "date", BUSINESS_DATE);
+    const transferToday = await InvDB.getByIndex("transfer", "date", TARGET_DATE);
 
-    // 5. Usage Import covering this date
+    // 5. Usage Import covering the target date
     const allImports = await InvDB.getAll("usageImports");
-    const usageToday = allImports.filter(u => u.periodStart && u.periodEnd && BUSINESS_DATE >= u.periodStart && BUSINESS_DATE <= u.periodEnd);
+    const usageToday = allImports.filter(u => u.periodStart && u.periodEnd && TARGET_DATE >= u.periodStart && TARGET_DATE <= u.periodEnd);
 
     const items = [
         {
@@ -65,8 +85,8 @@ async function renderChecklist(){
             required: true,
             ok: soSessions.length > 0,
             desc: soSessions.length > 0
-                ? `${soSessions.length} sesi ditemukan untuk ${BUSINESS_DATE}`
-                : `Belum ada Stock Opname untuk ${BUSINESS_DATE}`
+                ? `${soSessions.length} sesi ditemukan untuk ${TARGET_DATE}`
+                : `Belum ada Stock Opname untuk ${TARGET_DATE}`
         },
         {
             title: "Waste Tracker",
@@ -98,7 +118,7 @@ async function renderChecklist(){
             ok: usageToday.length > 0,
             desc: usageToday.length > 0
                 ? `Tercakup dalam ${usageToday.length} import (${usageToday.map(u=>u.periodLabel).join(", ")})`
-                : `Belum ada data usage yang mencakup tanggal ${BUSINESS_DATE}`
+                : `Belum ada data usage yang mencakup tanggal ${TARGET_DATE}`
         }
     ];
 
@@ -128,7 +148,7 @@ function renderEndingSessionList(){
 
     document.getElementById("endingList").innerHTML = sorted.map(s => `
         <label class="sess-item">
-            <input type="checkbox" class="ending-check" value="${s.id}" ${s.tanggal === BUSINESS_DATE ? "checked" : ""}>
+            <input type="checkbox" class="ending-check" value="${s.id}" ${s.tanggal === TARGET_DATE ? "checked" : ""}>
             <div class="sess-meta">
                 <b>${s.tanggal || "-"} · ${s.kategori || "-"}</b>
                 <small>${s.type || ""} · ${s.waktuInput || ""} · PIC: ${s.pic || "-"} · ${(s.items||[]).length} item</small>
@@ -163,17 +183,19 @@ async function closeToday(){
     const blocking = window._checklistBlocking || [];
     if(blocking.length > 0){
         const names = blocking.map(b=>b.title).join(", ");
-        if(!confirm(`Checklist berikut belum lengkap: ${names}.\n\nTetap lanjutkan tutup hari ini?`)) return;
+        if(!confirm(`Checklist berikut belum lengkap: ${names}.\n\nTetap lanjutkan tutup tanggal ${TARGET_DATE}?`)) return;
     } else {
-        if(!confirm(`Tutup business date ${BUSINESS_DATE}? Aksi ini akan memajukan business date ke hari berikutnya.`)) return;
+        if(!confirm(`Tutup business date ${TARGET_DATE}?`)) return;
     }
 
     const endingByCode = sumSessionsByCode(endingIds);
-    const nextDate = await InvDB.closeBusinessDay(BUSINESS_DATE, endingByCode, "", endingIds);
+    const newTracked = await InvDB.closeBusinessDay(TARGET_DATE, endingByCode, "", endingIds);
 
-    toast(`✓ Hari ditutup. Business date sekarang: ${nextDate}`,"success");
+    toast(`✓ Tanggal ${TARGET_DATE} ditutup. Business date sekarang: ${newTracked}`,"success");
 
-    BUSINESS_DATE = nextDate;
+    TRACKED_BUSINESS_DATE = newTracked;
+    TARGET_DATE = newTracked;
+    document.getElementById("targetDateInput").value = TARGET_DATE;
     renderBizDate();
     renderEndingSessionList();
     await renderChecklist();

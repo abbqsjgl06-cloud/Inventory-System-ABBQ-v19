@@ -57,6 +57,38 @@ function findKey(row, candidates){
     return null;
 }
 
+function parseFlexibleDate(value){
+    if(value === null || value === undefined || value === "") return null;
+
+    if(value instanceof Date && !isNaN(value)) return value;
+
+    if(typeof value === "number"){
+        // Excel serial date number
+        try {
+            const parsed = XLSX.SSF.parse_date_code(value);
+            if(parsed) return new Date(Date.UTC(parsed.y, parsed.m - 1, parsed.d));
+        } catch(e){ /* fall through */ }
+    }
+
+    if(typeof value === "string"){
+        const s = value.trim();
+
+        // YYYY-MM-DD or YYYY/MM/DD
+        let m = s.match(/^(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})/);
+        if(m) return new Date(Date.UTC(+m[1], +m[2]-1, +m[3]));
+
+        // DD-MM-YYYY or DD/MM/YYYY (Indonesian format)
+        m = s.match(/^(\d{1,2})[-\/](\d{1,2})[-\/](\d{4})/);
+        if(m) return new Date(Date.UTC(+m[3], +m[2]-1, +m[1]));
+
+        // Fallback to native parsing
+        const native = new Date(s);
+        if(!isNaN(native)) return native;
+    }
+
+    return null;
+}
+
 function processRows(rows, filename){
     if(rows.length === 0){
         toast("File kosong","error");
@@ -81,9 +113,9 @@ function processRows(rows, filename){
         if(!code) return;
         SALES_BY_MENU[code] = (SALES_BY_MENU[code] || 0) + qty;
 
-        if(dateKey && r[dateKey]){
-            let d = r[dateKey];
-            if(d instanceof Date){
+        if(dateKey && r[dateKey] !== "" && r[dateKey] !== undefined && r[dateKey] !== null){
+            const d = parseFlexibleDate(r[dateKey]);
+            if(d){
                 if(!DATE_MIN || d < DATE_MIN) DATE_MIN = d;
                 if(!DATE_MAX || d > DATE_MAX) DATE_MAX = d;
             }
@@ -118,6 +150,19 @@ function processRows(rows, filename){
     document.getElementById("menuMatched").textContent = Object.keys(SALES_BY_MENU).length - UNMATCHED_MENUS.size;
     document.getElementById("menuUnmatched").textContent = UNMATCHED_MENUS.size;
     document.getElementById("previewBox").style.display = "block";
+
+    const dateWarning = document.getElementById("dateWarning");
+    if(dateWarning){
+        if(!dateKey){
+            dateWarning.style.display = "block";
+            dateWarning.textContent = "⚠ Kolom tanggal tidak ditemukan di file. Periode akan disimpan tanpa rentang tanggal otomatis (isi manual di 'Nama Periode' saja).";
+        } else if(!DATE_MIN || !DATE_MAX){
+            dateWarning.style.display = "block";
+            dateWarning.textContent = "⚠ Kolom tanggal ditemukan tapi formatnya tidak terbaca. Coba format tanggal YYYY-MM-DD atau DD/MM/YYYY di file Excel-nya.";
+        } else {
+            dateWarning.style.display = "none";
+        }
+    }
 
     window._pendingFilename = filename;
 }
@@ -194,4 +239,51 @@ function toast(msg, type="success"){
     el.innerHTML = msg;
     el.style.display = "block";
     setTimeout(()=>{ el.style.display = "none"; }, 2500);
+}
+
+/* ================= ADMIN: TEMPLATE DOWNLOAD ================= */
+
+document.addEventListener("authReady", (e) => {
+    const box = document.getElementById("adminToolsBox");
+    if(box) box.style.display = (e.detail.role === "admin") ? "block" : "none";
+});
+
+function downloadTemplate(){
+    const header = ["Date","Code","Desc","Major","Family","Qty","Discount","Net Sales","RVC","Order Type"];
+    const sampleMenu = MENUS[0] || { menu_code: "1111001", menu_name: "Contoh Menu" };
+    const today = new Date().toISOString().slice(0,10);
+    const sample1 = [today, sampleMenu.menu_code, sampleMenu.menu_name, "", "", 5, 0, 0, "", "Dine In"];
+    const sample2 = [today, sampleMenu.menu_code, sampleMenu.menu_name, "", "", 3, 0, 0, "", "Take Away"];
+
+    const ws = XLSX.utils.aoa_to_sheet([header, sample1, sample2]);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Template Usage");
+    XLSX.writeFile(wb, "Template_Import_Usage.xlsx");
+}
+
+/* ================= ADMIN: MENU TANPA BOM ================= */
+
+async function showMenusWithoutBom(){
+    const bomMenuCodes = new Set(BOM_ROWS.map(b => b.menu_code));
+    const missing = MENUS.filter(m => !bomMenuCodes.has(m.menu_code));
+
+    const box = document.getElementById("noBomResult");
+    box.style.display = "block";
+
+    if(missing.length === 0){
+        box.innerHTML = `<p style="font-size:13px;color:var(--good);">✓ Semua menu sudah punya BOM.</p>`;
+        return;
+    }
+
+    box.innerHTML = `
+        <p style="font-size:13px;color:var(--muted);margin-bottom:10px;">${missing.length} menu belum punya BOM:</p>
+        <div class="table-wrap">
+            <table>
+                <thead><tr><th>Kode Menu</th><th>Nama Menu</th></tr></thead>
+                <tbody>
+                    ${missing.map(m => `<tr><td>${m.menu_code}</td><td>${m.menu_name}</td></tr>`).join("")}
+                </tbody>
+            </table>
+        </div>
+    `;
 }
