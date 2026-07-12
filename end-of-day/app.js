@@ -4,6 +4,7 @@ let TRACKED_BUSINESS_DATE = null; // the officially auto-advancing business date
 let TARGET_DATE = null;           // the date currently shown/being closed (admin can change this)
 let STOCK_SESSIONS = [];
 let IS_ADMIN = false;
+let CLOSED_DATES = new Set();
 
 document.addEventListener("authReady", (e) => {
     IS_ADMIN = e.detail.role === "admin";
@@ -20,6 +21,9 @@ document.addEventListener("DOMContentLoaded", async () => {
 
         await InvDB.migrateLegacyStockOpname();
         STOCK_SESSIONS = await InvDB.getAll("stockOpname");
+
+        const snapshots = await InvDB.getAll("eodSnapshots");
+        CLOSED_DATES = new Set(snapshots.map(s => s.date));
 
         renderEndingSessionList();
         await renderChecklist();
@@ -152,12 +156,13 @@ function dedupeLatestSessions(sessions){
 }
 
 function renderEndingSessionList(){
-    const latestOnly = dedupeLatestSessions(STOCK_SESSIONS);
+    const latestOnly = dedupeLatestSessions(STOCK_SESSIONS)
+        .filter(s => !CLOSED_DATES.has(s.tanggal) || s.tanggal === TARGET_DATE);
     const sorted = [...latestOnly].sort((a,b) => (b.tanggal||"").localeCompare(a.tanggal||""));
 
     if(sorted.length === 0){
         document.getElementById("endingList").innerHTML =
-            `<div class="empty">Belum ada sesi Stock Opname sama sekali.</div>`;
+            `<div class="empty">Tidak ada sesi Stock Opname yang belum ditutup. Semua tanggal sudah final lewat End of Day sebelumnya.</div>`;
         return;
     }
 
@@ -205,6 +210,8 @@ async function closeToday(){
 
     const endingByCode = sumSessionsByCode(endingIds);
     const newTracked = await InvDB.closeBusinessDay(TARGET_DATE, endingByCode, "", endingIds);
+
+    CLOSED_DATES.add(TARGET_DATE);
 
     toast(`✓ Tanggal ${TARGET_DATE} ditutup. Business date sekarang: ${newTracked}`,"success");
 
