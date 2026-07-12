@@ -565,19 +565,5 @@
 "item":"RAUCHERGOLD (SMOKE CHIP)",
 "konv":20000,
 "uom":"G"
-},
-{
-"nomor":82,
-"kode":"120354",
-"item":"AYAM BAKAR DADA (PEJANTAN) 4PACX10PCS/CT",
-"konv":1,
-"uom":"PC"
-},
-{
-"nomor":83,
-"kode":"120355",
-"item":"AYAM BAKAR PAHA (PEJANTAN) 4PACX10PCS/CT",
-"konv":1,
-"uom":"PC"
-} 
+}
 ]

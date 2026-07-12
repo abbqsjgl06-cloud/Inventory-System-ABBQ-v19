@@ -200,7 +200,7 @@ async function confirmImport(){
 }
 
 async function deleteImport(id){
-    if(!confirm("Hapus riwayat import ini? Usage terkait akan dihapus dari laporan variance.")) return;
+    if(!await uiConfirm("Hapus riwayat import ini? Usage terkait akan dihapus dari laporan variance.")) return;
     await InvDB.remove("usageImports", id);
     const details = await InvDB.getByIndex("usageDetail", "importId", id);
     for(const d of details){
@@ -220,8 +220,9 @@ function renderImportHistory(){
     }
     document.getElementById("importHistoryBody").innerHTML = sorted.map(h => `
         <tr>
+            <td><b>${h.periodStart ? `${h.periodStart} s/d ${h.periodEnd}` : ""}</b>${!h.periodStart ? `<span style="color:#C23B2E;">Tidak terdeteksi</span>` : ""}</td>
+            <td>${h.periodLabel}</td>
             <td>${new Date(h.dateImported).toLocaleString("id-ID")}</td>
-            <td>${h.periodLabel}${h.periodStart ? ` <br><small style="color:var(--muted);">${h.periodStart} s/d ${h.periodEnd}</small>` : ""}</td>
             <td>${h.filename}</td>
             <td class="num">${h.rowCount}</td>
             <td class="num">${h.unmatchedCount || 0}</td>

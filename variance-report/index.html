@@ -7,23 +7,10 @@
 <link rel="icon" href="../logo.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="../shared/inv-style.css?v=18">
+<link rel="stylesheet" href="../shared/inv-style.css?v=26">
 <style>
   :root{ --accent:#B0281C; --accent-tint:#FBE7E4; }
   thead th{background:var(--accent-tint);}
-  .sess-list{
-    max-height:240px;overflow-y:auto;
-    border:1px solid var(--line);border-radius:12px;
-  }
-  .sess-item{
-    display:flex;align-items:center;gap:10px;
-    padding:10px 12px;border-bottom:1px solid var(--line);font-size:13px;
-  }
-  .sess-item:last-child{border-bottom:none;}
-  .sess-item input{width:auto;flex:none;}
-  .sess-meta{flex:1;}
-  .sess-meta b{display:block;font-size:13px;}
-  .sess-meta small{color:var(--muted);}
   .row-flag{background:#FCEBE9 !important;}
   .filter-toggle{
     display:flex;gap:8px;margin-bottom:10px;
@@ -171,15 +158,16 @@
 
 <div class="notif" id="notif"></div>
 
-<script src="../shared/xlsx.full.min.js?v=18"></script>
+<script src="../shared/xlsx.full.min.js?v=26"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script>
 <script src="../shared/firebase-config.js"></script>
 <script>window.AUTH_GUARD_DEPTH = 1;</script>
-<script src="../shared/auth-guard.js?v=18"></script>
-<script src="../shared/seed-data.js?v=18"></script>
-<script src="../shared/inv-db.js?v=18"></script>
-<script src="app.js?v=18"></script>
+<script src="../shared/auth-guard.js?v=26"></script>
+<script src="../shared/seed-data.js?v=26"></script>
+<script src="../shared/inv-db.js?v=26"></script>
+<script src="../shared/ui-dialog.js?v=26"></script>
+<script src="app.js?v=26"></script>
 </body>
 </html>

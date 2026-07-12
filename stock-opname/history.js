@@ -194,7 +194,7 @@ async function deleteSelectedHistory(){
         return;
     }
 
-    if(!confirm(`Hapus ${ids.length} riwayat Stock Opname terpilih? Aksi ini tidak bisa dibatalkan.`)) return;
+    if(!await uiConfirm(`Hapus ${ids.length} riwayat Stock Opname terpilih? Aksi ini tidak bisa dibatalkan.`)) return;
 
     try {
         for(const id of ids){

@@ -58,7 +58,7 @@ async function ensureSeed(){
 }
 
 async function resetSeed(){
-    if(!confirm("Reset seluruh Item & BOM ke data awal? Perubahan manual pada master akan hilang.")) return;
+    if(!await uiConfirm("Reset seluruh Item & BOM ke data awal? Perubahan manual pada master akan hilang.")) return;
     await InvDB.clear("materials");
     await InvDB.clear("bom");
     await InvDB.clear("menus");
@@ -111,6 +111,8 @@ function renderMaterials(){
             <td>
                 <button class="btn btn-ghost" style="padding:6px 10px;font-size:12px;width:auto;"
                     onclick="editMaterial('${m.code}')">Edit</button>
+                <button class="btn btn-ghost" style="padding:6px 10px;font-size:12px;width:auto;color:#C23B2E;"
+                    onclick="deleteMaterial('${m.code}')">Hapus</button>
             </td>
         </tr>
     `).join("");
@@ -124,6 +126,21 @@ function editMaterial(code){
     document.getElementById("matUom").value = m.uom;
     document.getElementById("matKonv").value = m.konv;
     document.getElementById("matCode").scrollIntoView({behavior:"smooth", block:"center"});
+}
+
+async function deleteMaterial(code){
+    const m = ALL_MATERIALS.find(x=>x.code===code);
+    if(!m) return;
+    if(!await uiConfirm(`Hapus item "${m.name}" (kode ${code})? Item ini tidak akan muncul lagi di dropdown Waste Tracker, Barang Masuk, Transfer, dll. Data transaksi lama yang sudah memakai item ini tidak akan terhapus.`)) return;
+
+    try {
+        await InvDB.remove("materials", code);
+        await refreshAll();
+        toast("✓ Item dihapus","success");
+    } catch(err){
+        console.error("Gagal hapus item:", err);
+        toast("Gagal hapus item. Cek koneksi internet.","error");
+    }
 }
 
 function resetMaterialForm(){
@@ -319,7 +336,7 @@ async function processBomWorkbook(wb){
 
 async function confirmBomImport(){
     if(!PENDING_BOM_IMPORT){ toast("Belum ada file yang diproses","error"); return; }
-    if(!confirm("Update Master Data (Item & BOM) dengan file ini? Data BOM & daftar menu lama akan digantikan.")) return;
+    if(!await uiConfirm("Update Master Data (Item & BOM) dengan file ini? Data BOM & daftar menu lama akan digantikan.")) return;
 
     await InvDB.clear("bom");
     await InvDB.clear("menus");

@@ -121,8 +121,23 @@ async function getAllWasteRecords(){
 
 /* ================= SESSION LISTS ================= */
 
+function dedupeLatestSessions(sessions){
+    const map = new Map();
+    sessions.forEach(s => {
+        const key = `${s.tanggal}|${s.kategori}|${s.type}`;
+        const existing = map.get(key);
+        const sTime = Number(s.id) || 0;
+        const eTime = existing ? (Number(existing.id) || 0) : -1;
+        if(!existing || sTime > eTime){
+            map.set(key, s);
+        }
+    });
+    return Array.from(map.values());
+}
+
 function renderSessionLists(){
-    const sorted = [...STOCK_SESSIONS].sort((a,b) => {
+    const latestOnly = dedupeLatestSessions(STOCK_SESSIONS);
+    const sorted = [...latestOnly].sort((a,b) => {
         const da = a.tanggal || "";
         const db = b.tanggal || "";
         return db.localeCompare(da);
@@ -140,7 +155,7 @@ function renderSessionLists(){
             <input type="checkbox" class="${prefix}-check" value="${s.id}">
             <div class="sess-meta">
                 <b>${s.tanggal || "-"} · ${s.kategori || "-"}</b>
-                <small>${s.type || ""} · ${s.waktuInput || ""} · PIC: ${s.pic || "-"} · ${(s.items||[]).length} item</small>
+                <small>${s.type || ""} · ${s.waktuInput || ""} · PIC: ${s.pic || "-"} · ${(s.items||[]).length} item · <span style="color:var(--good);font-weight:700;">✓ Input terakhir</span></small>
             </div>
         </label>
     `).join("");
@@ -273,7 +288,7 @@ function sumSessionsByCode(ids){
 async function closeEndOfDay(){
     if(RESULT_ROWS.length === 0){ toast("Hitung variance dulu sebelum tutup hari","error"); return; }
 
-    if(!confirm(`Tutup business date ${BUSINESS_DATE}? Ending Stock hasil hitungan ini akan menjadi Opening Stock untuk hari berikutnya. Aksi ini bisa dibatalkan lagi lewat "Ubah Manual" bila diperlukan.`)) return;
+    if(!await uiConfirm(`Tutup business date ${BUSINESS_DATE}? Ending Stock hasil hitungan ini akan menjadi Opening Stock untuk hari berikutnya. Aksi ini bisa dibatalkan lagi lewat "Ubah Manual" bila diperlukan.`)) return;
 
     const endingByCode = {};
     RESULT_ROWS.forEach(r => {

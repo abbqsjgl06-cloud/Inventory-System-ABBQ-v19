@@ -183,7 +183,7 @@ async function saveAllStaging(){
 }
 
 async function deleteReceipt(id){
-    if(!confirm("Hapus entri ini?")) return;
+    if(!await uiConfirm("Hapus entri ini?")) return;
     await InvDB.remove("goodsReceipt", id);
     ALL_RECEIPTS = ALL_RECEIPTS.filter(r=>r.id!==id);
     renderHistory();

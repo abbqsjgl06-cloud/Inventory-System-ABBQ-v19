@@ -193,7 +193,7 @@ async function saveAllStaging(){
 }
 
 async function deleteTransfer(id){
-    if(!confirm("Hapus entri ini?")) return;
+    if(!await uiConfirm("Hapus entri ini?")) return;
     await InvDB.remove("transfer", id);
     ALL_TRANSFERS = ALL_TRANSFERS.filter(r=>r.id!==id);
     renderHistory();

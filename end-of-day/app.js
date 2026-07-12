@@ -63,7 +63,7 @@ async function renderChecklist(){
     const box = document.getElementById("checklistBox");
 
     // 1. Stock Opname for the target date
-    const soSessions = STOCK_SESSIONS.filter(s => s.tanggal === TARGET_DATE);
+    const soSessions = dedupeLatestSessions(STOCK_SESSIONS).filter(s => s.tanggal === TARGET_DATE);
 
     // 2. Waste (optional)
     const wasteRecords = await getAllWasteRecords();
@@ -137,8 +137,23 @@ async function renderChecklist(){
 
 /* ================= ENDING STOCK SESSION LIST ================= */
 
+function dedupeLatestSessions(sessions){
+    const map = new Map();
+    sessions.forEach(s => {
+        const key = `${s.tanggal}|${s.kategori}|${s.type}`;
+        const existing = map.get(key);
+        const sTime = Number(s.id) || 0;
+        const eTime = existing ? (Number(existing.id) || 0) : -1;
+        if(!existing || sTime > eTime){
+            map.set(key, s);
+        }
+    });
+    return Array.from(map.values());
+}
+
 function renderEndingSessionList(){
-    const sorted = [...STOCK_SESSIONS].sort((a,b) => (b.tanggal||"").localeCompare(a.tanggal||""));
+    const latestOnly = dedupeLatestSessions(STOCK_SESSIONS);
+    const sorted = [...latestOnly].sort((a,b) => (b.tanggal||"").localeCompare(a.tanggal||""));
 
     if(sorted.length === 0){
         document.getElementById("endingList").innerHTML =
@@ -151,7 +166,7 @@ function renderEndingSessionList(){
             <input type="checkbox" class="ending-check" value="${s.id}" ${s.tanggal === TARGET_DATE ? "checked" : ""}>
             <div class="sess-meta">
                 <b>${s.tanggal || "-"} · ${s.kategori || "-"}</b>
-                <small>${s.type || ""} · ${s.waktuInput || ""} · PIC: ${s.pic || "-"} · ${(s.items||[]).length} item</small>
+                <small>${s.type || ""} · ${s.waktuInput || ""} · PIC: ${s.pic || "-"} · ${(s.items||[]).length} item · <span style="color:var(--good);font-weight:700;">✓ Input terakhir</span></small>
             </div>
         </label>
     `).join("");
@@ -183,9 +198,9 @@ async function closeToday(){
     const blocking = window._checklistBlocking || [];
     if(blocking.length > 0){
         const names = blocking.map(b=>b.title).join(", ");
-        if(!confirm(`Checklist berikut belum lengkap: ${names}.\n\nTetap lanjutkan tutup tanggal ${TARGET_DATE}?`)) return;
+        if(!await uiConfirm(`Checklist berikut belum lengkap: ${names}.\n\nTetap lanjutkan tutup tanggal ${TARGET_DATE}?`)) return;
     } else {
-        if(!confirm(`Tutup business date ${TARGET_DATE}?`)) return;
+        if(!await uiConfirm(`Tutup business date ${TARGET_DATE}?`)) return;
     }
 
     const endingByCode = sumSessionsByCode(endingIds);
@@ -205,23 +220,67 @@ async function closeToday(){
 
 /* ================= HISTORY ================= */
 
+let EOD_SNAPSHOTS = [];
+
 async function renderEodHistory(){
     const snapshots = await InvDB.getAll("eodSnapshots");
-    const sorted = snapshots.sort((a,b)=>b.date.localeCompare(a.date));
+    EOD_SNAPSHOTS = snapshots.sort((a,b)=>b.date.localeCompare(a.date));
 
-    if(sorted.length === 0){
+    if(EOD_SNAPSHOTS.length === 0){
         document.getElementById("historyBody").innerHTML =
             `<tr><td colspan="3" class="empty">Belum ada riwayat penutupan hari</td></tr>`;
         return;
     }
 
-    document.getElementById("historyBody").innerHTML = sorted.map(s => `
-        <tr>
-            <td>${s.date}</td>
+    document.getElementById("historyBody").innerHTML = EOD_SNAPSHOTS.map((s, i) => `
+        <tr class="eod-history-row" style="cursor:pointer;" onclick="toggleEodDetail(${i})">
+            <td>${s.date} <span style="color:var(--muted);font-size:11px;">▾ detail</span></td>
             <td>${new Date(s.closedAt).toLocaleString("id-ID")}</td>
             <td class="num">${Object.keys(s.endingByCode||{}).length}</td>
         </tr>
+        <tr id="eodDetail${i}" style="display:none;">
+            <td colspan="3" style="background:var(--paper);">
+                <div id="eodDetailBody${i}" style="padding:10px 4px;font-size:12px;">Memuat...</div>
+            </td>
+        </tr>
     `).join("");
+}
+
+function toggleEodDetail(i){
+    const row = document.getElementById(`eodDetail${i}`);
+    const body = document.getElementById(`eodDetailBody${i}`);
+    if(!row) return;
+
+    const showing = row.style.display !== "none";
+    if(showing){
+        row.style.display = "none";
+        return;
+    }
+
+    row.style.display = "table-row";
+
+    const snap = EOD_SNAPSHOTS[i];
+    const usedSessions = (snap.sessionIds || [])
+        .map(id => STOCK_SESSIONS.find(s => String(s.id) === String(id)))
+        .filter(Boolean);
+
+    const sessionsHtml = usedSessions.length > 0
+        ? usedSessions.map(s => `
+            <div style="padding:8px 0;border-bottom:1px solid var(--line);">
+                <b>${s.kategori} · ${s.type}</b><br>
+                <span style="color:var(--muted);">PIC: ${s.pic || "-"} · ${s.waktuInput || ""} · ${(s.items||[]).length} item</span>
+            </div>
+        `).join("")
+        : `<div style="color:var(--muted);">Data sesi tidak ditemukan (mungkin sudah dihapus).</div>`;
+
+    body.innerHTML = `
+        <div style="font-weight:700;margin-bottom:6px;">Sesi Stock Opname yang dipakai sebagai Ending:</div>
+        ${sessionsHtml}
+        <div style="margin-top:10px;color:var(--muted);">
+            Total ${Object.keys(snap.endingByCode||{}).length} kode bahan baku tercatat.
+            ${snap.note ? `<br>Catatan: ${snap.note}` : ""}
+        </div>
+    `;
 }
 
 function toast(msg, type="success"){

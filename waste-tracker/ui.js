@@ -135,7 +135,7 @@ const UI = (() => {
 
     function confirmDialog(message) {
 
-        return window.confirm(message);
+        return uiConfirm(message);
 
     }
 
@@ -145,7 +145,7 @@ const UI = (() => {
 
     function alertDialog(message) {
 
-        window.alert(message);
+        return uiAlert(message);
 
     }
 

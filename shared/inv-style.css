@@ -262,7 +262,21 @@ tbody tr:hover{background:var(--paper);}
   font-size:14px;
 }
 
-/* ---------- Autocomplete list ---------- */
+/* ---------- Session picker list (checkbox + label rows) ---------- */
+
+.sess-list{
+  max-height:240px;overflow-y:auto;
+  border:1px solid var(--line);border-radius:12px;
+}
+.sess-item{
+  display:flex;align-items:center;gap:10px;
+  padding:10px 12px;border-bottom:1px solid var(--line);font-size:13px;
+}
+.sess-item:last-child{border-bottom:none;}
+.sess-item input{width:auto;flex:none;}
+.sess-meta{flex:1;}
+.sess-meta b{display:block;font-size:13px;}
+.sess-meta small{color:var(--muted);}
 
 .suggest-list{
   position:absolute;

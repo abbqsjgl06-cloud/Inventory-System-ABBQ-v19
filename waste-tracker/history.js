@@ -245,7 +245,7 @@ const History = (() => {
 
     async function remove(id) {
 
-        const ok = UI.confirmDialog("Hapus data ini?");
+        const ok = await UI.confirmDialog("Hapus data ini?");
         if (!ok) return;
 
         UI.showLoading();
