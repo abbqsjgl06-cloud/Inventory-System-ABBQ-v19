@@ -7,7 +7,7 @@
 <link rel="icon" href="../logo.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="../shared/inv-style.css?v=26">
+<link rel="stylesheet" href="../shared/inv-style.css?v=30">
 <style>
   :root{ --accent:#B0281C; --accent-tint:#FBE7E4; }
   thead th{background:var(--accent-tint);}
@@ -55,11 +55,11 @@
     <div class="field-row">
       <div class="field">
         <label>Dari Tanggal</label>
-        <input type="date" id="periodStart" onchange="refreshOpeningForPeriod()">
+        <input type="date" id="periodStart" onchange="onPeriodChange()">
       </div>
       <div class="field">
         <label>Sampai Tanggal</label>
-        <input type="date" id="periodEnd">
+        <input type="date" id="periodEnd" onchange="onPeriodChange()">
       </div>
     </div>
   </div>
@@ -74,22 +74,32 @@
       <button class="btn btn-ghost" style="width:auto;padding:8px 14px;font-size:12px;" onclick="useManualOpening()">Pakai Sesi Stock Opname Manual Sebagai Gantinya</button>
     </div>
     <div id="openingManualBox">
-      <p style="font-size:12px;color:var(--muted);margin-bottom:10px;">Pilih 1 atau lebih sesi (misalnya Kitchen + Frontliner tanggal yang sama) sebagai stok awal periode.</p>
+      <p style="font-size:12px;color:var(--muted);margin-bottom:10px;">Tanggal sebelum periode ini belum di-EOD. Pilih 1 atau lebih sesi manual sebagai stok awal periode.</p>
       <div class="sess-list" id="openingList"></div>
       <button class="btn btn-ghost" style="width:auto;padding:8px 14px;font-size:12px;margin-top:10px;display:none;" id="backToAutoBtn" onclick="useAutoOpening()">← Kembali ke Otomatis</button>
     </div>
   </div>
 
   <div class="panel">
-    <div class="panel-title">3. Sesi Stock Opname — Ending Stock</div>
-    <p style="font-size:12px;color:var(--muted);margin-bottom:10px;">Pilih 1 atau lebih sesi sebagai hasil stock opname akhir periode (hasil hitung fisik hari ini).</p>
-    <div class="sess-list" id="endingList"></div>
+    <div class="panel-title">3. Ending Stock</div>
+    <div id="endingAutoBox" style="display:none;">
+      <p style="font-size:13px;color:var(--muted);margin-bottom:10px;">
+        ✓ Otomatis terisi dari Ending Stock hasil <b>Tutup Hari</b> tanggal <b id="endingAutoDate">-</b>
+        (<span id="endingAutoCount">0</span> item).
+      </p>
+      <button class="btn btn-ghost" style="width:auto;padding:8px 14px;font-size:12px;" onclick="useManualEnding()">Pakai Sesi Stock Opname Manual Sebagai Gantinya</button>
+    </div>
+    <div id="endingManualBox">
+      <p style="font-size:12px;color:var(--muted);margin-bottom:10px;">Tanggal akhir periode ini belum di-EOD (End of Day). Pilih 1 atau lebih sesi manual sebagai hasil stock opname akhir.</p>
+      <div class="sess-list" id="endingList"></div>
+      <button class="btn btn-ghost" style="width:auto;padding:8px 14px;font-size:12px;margin-top:10px;display:none;" id="backToAutoEndingBtn" onclick="useAutoEnding()">← Kembali ke Otomatis</button>
+    </div>
   </div>
 
   <div class="panel">
     <div class="panel-title">4. Data Usage (Import Penjualan)</div>
-    <p style="font-size:12px;color:var(--muted);margin-bottom:10px;">Pilih import usage yang termasuk dalam periode ini.</p>
-    <div class="sess-list" id="usageList"></div>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:10px;">Otomatis mencakup semua import usage yang rentang tanggalnya tumpang tindih dengan periode di atas.</p>
+    <div id="usageAutoList" style="font-size:13px;color:var(--muted);">-</div>
   </div>
 
   <button class="btn btn-primary" onclick="calculateVariance()" style="margin-bottom:16px;">Hitung Variance</button>
@@ -105,16 +115,6 @@
         <div class="summary-label">Item Ada Variance</div>
         <div class="summary-value neg" id="sumVarianceItems">0</div>
       </div>
-    </div>
-
-    <div class="panel" style="border:2px solid var(--accent);">
-      <div class="panel-title">🔒 Tutup Hari Ini (End of Day)</div>
-      <p style="font-size:13px;color:var(--muted);margin-bottom:12px;">
-        Setelah Anda yakin hasil Ending Stock di atas sudah final untuk business date
-        <b id="eodDateLabel">-</b>, tutup hari ini. Ending Stock hasil hitungan ini akan
-        otomatis menjadi Opening Stock untuk business date berikutnya.
-      </p>
-      <button class="btn btn-primary" onclick="closeEndOfDay()">🔒 Tutup Hari Ini &amp; Lanjut ke Hari Berikutnya</button>
     </div>
 
     <div class="panel">
@@ -158,16 +158,16 @@
 
 <div class="notif" id="notif"></div>
 
-<script src="../shared/xlsx.full.min.js?v=26"></script>
+<script src="../shared/xlsx.full.min.js?v=30"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script>
 <script src="../shared/firebase-config.js"></script>
 <script>window.AUTH_GUARD_DEPTH = 1;</script>
-<script src="../shared/auth-guard.js?v=26"></script>
-<script src="../shared/seed-data.js?v=26"></script>
-<script src="../shared/inv-db.js?v=26"></script>
-<script src="../shared/ui-dialog.js?v=26"></script>
-<script src="app.js?v=26"></script>
+<script src="../shared/auth-guard.js?v=30"></script>
+<script src="../shared/seed-data.js?v=30"></script>
+<script src="../shared/inv-db.js?v=30"></script>
+<script src="../shared/ui-dialog.js?v=30"></script>
+<script src="app.js?v=30"></script>
 </body>
 </html>

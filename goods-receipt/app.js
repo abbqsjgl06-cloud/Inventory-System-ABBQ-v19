@@ -4,6 +4,13 @@ let MATERIALS = [];
 let SELECTED_ITEM = null;
 let ALL_RECEIPTS = [];
 let MATERIALS_LOADED = false;
+let IS_ADMIN = false;
+
+document.addEventListener("authReady", (e) => {
+    IS_ADMIN = e.detail.role === "admin";
+    const box = document.getElementById("adminImportBox");
+    if(box) box.style.display = IS_ADMIN ? "block" : "none";
+});
 
 document.addEventListener("DOMContentLoaded", () => {
     // Always run first, synchronously - never blocked by data loading.
@@ -17,6 +24,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
     initAutocomplete();
     renderHistory();
+
+    const importFile = document.getElementById("adminImportFile");
+    if(importFile) importFile.addEventListener("change", handleAdminImport);
 
     loadData();
 });
@@ -195,39 +205,101 @@ function renderHistory(){
     const end = document.getElementById("filterEnd").value;
 
     const filtered = ALL_RECEIPTS
-        .filter(r => (!start || r.date >= start) && (!end || r.date <= end))
-        .sort((a,b) => b.date.localeCompare(a.date) || b.createdAt.localeCompare(a.createdAt));
+        .filter(r => (!start || r.date >= start) && (!end || r.date <= end));
 
     document.getElementById("sumRows").textContent = filtered.length;
     document.getElementById("sumItems").textContent = new Set(filtered.map(r=>r.material_code)).size;
-    document.getElementById("checkAll").checked = false;
     updateSelectedCount();
 
+    const container = document.getElementById("historyGroups");
+
     if(filtered.length === 0){
-        document.getElementById("historyBody").innerHTML =
-            `<tr><td colspan="8" class="empty">Belum ada data pada rentang ini</td></tr>`;
+        container.innerHTML = `<div class="panel"><div class="empty">Belum ada data pada rentang ini</div></div>`;
         return;
     }
 
-    document.getElementById("historyBody").innerHTML = filtered.map(r => `
-        <tr>
-            <td><input type="checkbox" class="row-check" value="${r.id}" onchange="updateSelectedCount()"></td>
-            <td>${r.date}</td>
-            <td><span class="chip">${r.source === "CK" ? "In CK" : "In Supplier"}</span></td>
-            <td>${r.material_code}</td>
-            <td>${r.material_name}</td>
-            <td class="num">${r.qty}</td>
-            <td>${r.uom}</td>
-            <td>
-                <button class="btn btn-ghost" style="padding:6px 10px;font-size:12px;width:auto;"
-                    onclick="deleteReceipt('${r.id}')">Hapus</button>
-            </td>
-        </tr>
-    `).join("");
+    const sources = [
+        { key: "CK", label: "In CK (Central Kitchen)" },
+        { key: "Supplier", label: "In Supplier" }
+    ];
+
+    container.innerHTML = sources.map(src => {
+        const srcRows = filtered.filter(r => r.source === src.key);
+        if(srcRows.length === 0) return "";
+
+        const byDate = {};
+        srcRows.forEach(r => {
+            if(!byDate[r.date]) byDate[r.date] = [];
+            byDate[r.date].push(r);
+        });
+        const dates = Object.keys(byDate).sort((a,b)=>b.localeCompare(a));
+        const srcId = `srcgrp-${src.key}`;
+
+        const dateGroupsHtml = dates.map(date => {
+            const rows = byDate[date].sort((a,b)=>(b.createdAt||"").localeCompare(a.createdAt||""));
+            const dateId = `srcgrp-${src.key}-${date}`;
+            return `
+                <div class="date-group">
+                    <div class="date-header" onclick="toggleGroup('${dateId}')">
+                        <span class="toggle-arrow" id="arrow-${dateId}">▸</span>
+                        ${date} <span class="chip">${rows.length} baris</span>
+                    </div>
+                    <div id="${dateId}" style="display:none;">
+                        <div class="table-wrap" style="margin:8px 0 4px;">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th style="width:32px;"><input type="checkbox" onchange="toggleGroupCheck(this,'${dateId}')"></th>
+                                        <th>Kode</th><th>Item</th><th class="num">Qty</th><th>UOM</th><th>Ket.</th><th></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${rows.map(r => `
+                                        <tr>
+                                            <td><input type="checkbox" class="row-check" value="${r.id}" onchange="updateSelectedCount()"></td>
+                                            <td>${r.material_code}</td>
+                                            <td>${r.material_name}</td>
+                                            <td class="num">${r.qty}</td>
+                                            <td>${r.uom}</td>
+                                            <td>${r.note || "-"}</td>
+                                            <td><button class="btn btn-ghost" style="padding:6px 10px;font-size:12px;width:auto;" onclick="deleteReceipt('${r.id}')">Hapus</button></td>
+                                        </tr>
+                                    `).join("")}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).join("");
+
+        return `
+            <div class="panel src-panel">
+                <div class="src-header" onclick="toggleGroup('${srcId}')">
+                    <span class="toggle-arrow" id="arrow-${srcId}">▸</span>
+                    ${src.label} <span class="chip">${srcRows.length} baris</span>
+                </div>
+                <div id="${srcId}" style="display:none;margin-top:6px;">
+                    ${dateGroupsHtml}
+                </div>
+            </div>
+        `;
+    }).join("");
 }
 
-function toggleCheckAll(checkbox){
-    document.querySelectorAll(".row-check").forEach(el => el.checked = checkbox.checked);
+function toggleGroup(id){
+    const el = document.getElementById(id);
+    const arrow = document.getElementById(`arrow-${id}`);
+    if(!el) return;
+    const showing = el.style.display !== "none";
+    el.style.display = showing ? "none" : "block";
+    if(arrow) arrow.textContent = showing ? "▸" : "▾";
+}
+
+function toggleGroupCheck(masterCheckbox, dateId){
+    const container = document.getElementById(dateId);
+    if(!container) return;
+    container.querySelectorAll(".row-check").forEach(cb => cb.checked = masterCheckbox.checked);
     updateSelectedCount();
 }
 
@@ -261,4 +333,64 @@ function toast(msg, type="success"){
     el.innerHTML = msg;
     el.style.display = "block";
     setTimeout(()=>{ el.style.display = "none"; }, 2000);
+}
+
+/* ================= ADMIN: BULK IMPORT DARI EXCEL ================= */
+
+async function handleAdminImport(e){
+    const file = e.target.files[0];
+    if(!file) return;
+
+    const resultEl = document.getElementById("adminImportResult");
+    resultEl.innerHTML = "Memproses...";
+
+    try {
+        const buffer = await file.arrayBuffer();
+        const wb = XLSX.read(new Uint8Array(buffer), { type: "array" });
+        const sheet = wb.Sheets[wb.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json(sheet, { defval: "", header: 1 });
+
+        let created = 0, skipped = 0;
+        const now = new Date().toISOString();
+        const records = [];
+
+        rows.forEach((row, i) => {
+            if(i === 0) return; // header row
+            const [tanggal, sumber, kode, qty, ket] = row;
+            if(!tanggal || !sumber || !kode){ if(row.some(c=>c!=="")) skipped++; return; }
+
+            const material = MATERIALS.find(m => String(m.code).trim() === String(kode).trim());
+            if(!material){ skipped++; return; }
+
+            const source = String(sumber).trim().toUpperCase() === "CK" ? "CK" : "Supplier";
+            const dateStr = tanggal instanceof Date ? tanggal.toISOString().slice(0,10) : String(tanggal).trim();
+
+            records.push({
+                id: "gr_" + Date.now() + "_" + i + "_" + Math.random().toString(36).slice(2,5),
+                date: dateStr,
+                source,
+                material_code: material.code,
+                material_name: material.name,
+                qty: Number(qty) || 0,
+                uom: material.uom,
+                note: ket ? String(ket).trim() : "",
+                createdAt: now
+            });
+            created++;
+        });
+
+        for(const r of records){
+            await InvDB.put("goodsReceipt", r);
+        }
+        ALL_RECEIPTS.push(...records);
+
+        resultEl.innerHTML = `✓ ${created} baris berhasil diimport` + (skipped > 0 ? `, ${skipped} baris dilewati (data tidak lengkap/kode tidak ditemukan)` : "");
+        e.target.value = "";
+        renderHistory();
+
+    } catch(err){
+        console.error(err);
+        resultEl.innerHTML = `<span style="color:#c0392b;">Gagal membaca file. Pastikan format .xlsx/.xls/.csv.</span>`;
+        e.target.value = "";
+    }
 }

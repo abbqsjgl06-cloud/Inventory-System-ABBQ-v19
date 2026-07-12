@@ -7,7 +7,7 @@
 <link rel="icon" href="../logo.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="../shared/inv-style.css?v=29">
+<link rel="stylesheet" href="../shared/inv-style.css?v=30">
 <style>
   :root{ --accent:#7E1D8C; --accent-tint:#F3E7F6; }
   thead th{background:var(--accent-tint);}
@@ -94,11 +94,23 @@
   </div>
 
   <div class="panel">
-    <div class="panel-title">Riwayat Penutupan Hari</div>
+    <div class="panel-title">Riwayat End of Day</div>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:10px;">Pilih rentang tanggal untuk melihat riwayat (tidak ditampilkan otomatis supaya tidak terlalu panjang).</p>
+    <div class="field-row">
+      <div class="field">
+        <label>Dari Tanggal</label>
+        <input type="date" id="historyFilterStart">
+      </div>
+      <div class="field">
+        <label>Sampai Tanggal</label>
+        <input type="date" id="historyFilterEnd">
+      </div>
+    </div>
+    <button class="btn btn-secondary" onclick="loadEodHistoryRange()" style="margin-bottom:14px;">Tampilkan Riwayat</button>
     <div class="table-wrap">
       <table>
         <thead><tr><th>Business Date</th><th>Ditutup Pada</th><th class="num">Jumlah Item</th></tr></thead>
-        <tbody id="historyBody"></tbody>
+        <tbody id="historyBody"><tr><td colspan="3" class="empty">Pilih tanggal lalu tekan "Tampilkan Riwayat"</td></tr></tbody>
       </table>
     </div>
   </div>
@@ -112,10 +124,10 @@
 <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script>
 <script src="../shared/firebase-config.js"></script>
 <script>window.AUTH_GUARD_DEPTH = 1;</script>
-<script src="../shared/auth-guard.js?v=29"></script>
-<script src="../shared/seed-data.js?v=29"></script>
-<script src="../shared/inv-db.js?v=29"></script>
-<script src="../shared/ui-dialog.js?v=29"></script>
-<script src="app.js?v=29"></script>
+<script src="../shared/auth-guard.js?v=30"></script>
+<script src="../shared/seed-data.js?v=30"></script>
+<script src="../shared/inv-db.js?v=30"></script>
+<script src="../shared/ui-dialog.js?v=30"></script>
+<script src="app.js?v=30"></script>
 </body>
 </html>

@@ -27,7 +27,12 @@ document.addEventListener("DOMContentLoaded", async () => {
 
         renderEndingSessionList();
         await renderChecklist();
-        await renderEodHistory();
+
+        const histEndDate = new Date();
+        const histStartDate = new Date();
+        histStartDate.setDate(histStartDate.getDate() - 30); // default: last 30 days
+        document.getElementById("historyFilterStart").value = histStartDate.toISOString().slice(0,10);
+        document.getElementById("historyFilterEnd").value = histEndDate.toISOString().slice(0,10);
     } catch(err){
         console.error("Gagal memuat End of Day:", err);
         toast("Gagal memuat data. Coba refresh halaman.", "error");
@@ -224,7 +229,9 @@ async function closeToday(){
     renderBizDate();
     renderEndingSessionList();
     await renderChecklist();
-    await renderEodHistory();
+    if(document.getElementById("historyFilterStart").value && document.getElementById("historyFilterEnd").value){
+        await loadEodHistoryRange();
+    }
     window.scrollTo({top:0, behavior:"smooth"});
 }
 
@@ -232,13 +239,20 @@ async function closeToday(){
 
 let EOD_SNAPSHOTS = [];
 
-async function renderEodHistory(){
-    const snapshots = await InvDB.getAll("eodSnapshots");
-    EOD_SNAPSHOTS = snapshots.sort((a,b)=>b.date.localeCompare(a.date));
+async function loadEodHistoryRange(){
+    const start = document.getElementById("historyFilterStart").value;
+    const end = document.getElementById("historyFilterEnd").value;
+
+    if(!start || !end){ toast("Pilih dari & sampai tanggal dulu","error"); return; }
+
+    const allSnapshots = await InvDB.getAll("eodSnapshots");
+    EOD_SNAPSHOTS = allSnapshots
+        .filter(s => s.date >= start && s.date <= end)
+        .sort((a,b)=>b.date.localeCompare(a.date));
 
     if(EOD_SNAPSHOTS.length === 0){
         document.getElementById("historyBody").innerHTML =
-            `<tr><td colspan="3" class="empty">Belum ada riwayat penutupan hari</td></tr>`;
+            `<tr><td colspan="3" class="empty">Tidak ada riwayat End of Day pada rentang ini</td></tr>`;
         return;
     }
 

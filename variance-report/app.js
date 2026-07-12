@@ -9,6 +9,8 @@ let OUTLET_NAME = "ABBQ Indonesia";
 let BUSINESS_DATE = null;
 let OPENING_EOD = null; // EOD snapshot for (selected periodStart - 1 day), if any
 let OPENING_MODE = "manual"; // "auto" | "manual"
+let ENDING_EOD = null;  // EOD snapshot for periodEnd, if any
+let ENDING_MODE = "manual"; // "auto" | "manual"
 
 document.addEventListener("DOMContentLoaded", async () => {
     await InvDB.ensureMasterSeed();
@@ -29,8 +31,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     document.getElementById("periodEnd").value = end;
 
     renderSessionLists();
-    renderUsageList();
-    await refreshOpeningForPeriod();
+    await onPeriodChange();
 });
 
 function todayStr(){
@@ -48,7 +49,6 @@ function previousDateStr(dateStr){
 function renderBizDate(){
     const [y,m,d] = BUSINESS_DATE.split("-");
     document.getElementById("bizDateDisplay").textContent = `${d}/${m}/${y}`;
-    document.getElementById("eodDateLabel").textContent = `${d}/${m}/${y}`;
     document.getElementById("manualBizDate").value = BUSINESS_DATE;
 }
 
@@ -65,6 +65,14 @@ async function saveManualBizDate(){
     renderBizDate();
     document.getElementById("manualDateEdit").style.display = "none";
     toast("✓ Business date diperbarui","success");
+}
+
+/* ================= PERIOD CHANGE (refreshes opening, ending, usage) ================= */
+
+async function onPeriodChange(){
+    await refreshOpeningForPeriod();
+    await refreshEndingForPeriod();
+    await refreshUsageAutoList();
 }
 
 /* ================= OPENING MODE (auto from EOD of the day before periodStart) ================= */
@@ -105,6 +113,45 @@ function useManualOpening(){
 function useAutoOpening(){
     OPENING_MODE = "auto";
     renderOpeningMode();
+}
+
+/* ================= ENDING MODE (auto from EOD of periodEnd) ================= */
+
+async function refreshEndingForPeriod(){
+    const periodEnd = document.getElementById("periodEnd").value;
+    if(!periodEnd){ ENDING_EOD = null; renderEndingMode(); return; }
+
+    ENDING_EOD = await InvDB.getEodSnapshot(periodEnd);
+    ENDING_MODE = ENDING_EOD ? "auto" : "manual";
+    renderEndingMode();
+}
+
+function renderEndingMode(){
+    const autoBox = document.getElementById("endingAutoBox");
+    const manualBox = document.getElementById("endingManualBox");
+    const backBtn = document.getElementById("backToAutoEndingBtn");
+
+    if(ENDING_MODE === "auto" && ENDING_EOD){
+        autoBox.style.display = "block";
+        manualBox.style.display = "none";
+        const [y,m,d] = ENDING_EOD.date.split("-");
+        document.getElementById("endingAutoDate").textContent = `${d}/${m}/${y}`;
+        document.getElementById("endingAutoCount").textContent = Object.keys(ENDING_EOD.endingByCode).length;
+    } else {
+        autoBox.style.display = ENDING_EOD ? "block" : "none";
+        manualBox.style.display = "block";
+        backBtn.style.display = ENDING_EOD ? "inline-flex" : "none";
+    }
+}
+
+function useManualEnding(){
+    ENDING_MODE = "manual";
+    renderEndingMode();
+}
+
+function useAutoEnding(){
+    ENDING_MODE = "auto";
+    renderEndingMode();
 }
 
 /* ================= WASTE (now centralized via Firestore "wasteRecords") ================= */
@@ -164,31 +211,37 @@ function renderSessionLists(){
     document.getElementById("endingList").innerHTML = html("ending");
 }
 
-function renderUsageList(){
-    if(USAGE_IMPORTS.length === 0){
-        document.getElementById("usageList").innerHTML =
-            `<div class="empty">Belum ada data usage. Silakan upload dulu di modul Import Usage.</div>`;
+async function refreshUsageAutoList(){
+    const periodStart = document.getElementById("periodStart").value;
+    const periodEnd = document.getElementById("periodEnd").value;
+    const box = document.getElementById("usageAutoList");
+
+    if(!periodStart || !periodEnd){ box.innerHTML = "-"; return; }
+
+    const overlapping = USAGE_IMPORTS.filter(u =>
+        u.periodStart && u.periodEnd && u.periodStart <= periodEnd && u.periodEnd >= periodStart
+    );
+
+    if(overlapping.length === 0){
+        box.innerHTML = `<span style="color:#8C2A1E;">⚠ Tidak ada data usage yang mencakup periode ini. Upload dulu di modul Import Usage bila diperlukan.</span>`;
         return;
     }
-    const sorted = [...USAGE_IMPORTS].sort((a,b)=>b.dateImported.localeCompare(a.dateImported));
-    document.getElementById("usageList").innerHTML = sorted.map(u => `
-        <label class="sess-item">
-            <input type="checkbox" class="usage-check" value="${u.id}">
-            <div class="sess-meta">
-                <b>${u.periodLabel}</b>
-                <small>${u.filename} · ${u.rowCount} baris${u.periodStart ? ` · ${u.periodStart} s/d ${u.periodEnd}` : ""}</small>
-            </div>
-        </label>
+
+    box.innerHTML = overlapping.map(u => `
+        <div style="padding:8px 0;border-bottom:1px solid var(--line);">
+            <b>${u.periodLabel}</b>
+            <br><small style="color:var(--muted);">${u.filename} · ${u.periodStart} s/d ${u.periodEnd}</small>
+        </div>
     `).join("");
 }
 
 /* ================= CALCULATION ================= */
 
 async function calculateVariance(){
-    const endingIds = Array.from(document.querySelectorAll(".ending-check:checked")).map(el=>el.value);
-    const usageIds = Array.from(document.querySelectorAll(".usage-check:checked")).map(el=>el.value);
     const periodStart = document.getElementById("periodStart").value;
     const periodEnd = document.getElementById("periodEnd").value;
+
+    if(!periodStart || !periodEnd){ toast("Lengkapi periode tanggal","error"); return; }
 
     let opening;
     if(OPENING_MODE === "auto" && OPENING_EOD){
@@ -199,11 +252,14 @@ async function calculateVariance(){
         opening = sumSessionsByCode(openingIds);
     }
 
-    if(endingIds.length === 0){ toast("Pilih minimal 1 sesi Ending Stock","error"); return; }
-    if(!periodStart || !periodEnd){ toast("Lengkapi periode tanggal","error"); return; }
-
-    // 1. Ending stock (sum pcs_gr per kode across selected sessions)
-    const ending = sumSessionsByCode(endingIds);
+    let ending;
+    if(ENDING_MODE === "auto" && ENDING_EOD){
+        ending = { ...ENDING_EOD.endingByCode };
+    } else {
+        const endingIds = Array.from(document.querySelectorAll(".ending-check:checked")).map(el=>el.value);
+        if(endingIds.length === 0){ toast("Pilih minimal 1 sesi Ending Stock","error"); return; }
+        ending = sumSessionsByCode(endingIds);
+    }
 
     // 2. Goods Receipt within period
     const allReceipts = await InvDB.getAll("goodsReceipt");
@@ -222,10 +278,13 @@ async function calculateVariance(){
     const wasteInRange = wasteRecords.filter(r => r.date >= periodStart && r.date <= periodEnd);
     const waste = sumByCode(wasteInRange);
 
-    // 5. Usage (selected imports)
+    // 5. Usage - auto-include all imports overlapping the period
+    const overlappingImports = USAGE_IMPORTS.filter(u =>
+        u.periodStart && u.periodEnd && u.periodStart <= periodEnd && u.periodEnd >= periodStart
+    );
     let usage = {};
-    for(const impId of usageIds){
-        const details = await InvDB.getByIndex("usageDetail", "importId", impId);
+    for(const imp of overlappingImports){
+        const details = await InvDB.getByIndex("usageDetail", "importId", imp.id);
         details.forEach(d => {
             usage[d.material_code] = (usage[d.material_code] || 0) + d.qty;
         });
@@ -281,33 +340,6 @@ function sumSessionsByCode(ids){
         });
     });
     return result;
-}
-
-/* ================= END OF DAY ================= */
-
-async function closeEndOfDay(){
-    if(RESULT_ROWS.length === 0){ toast("Hitung variance dulu sebelum tutup hari","error"); return; }
-
-    if(!await uiConfirm(`Tutup business date ${BUSINESS_DATE}? Ending Stock hasil hitungan ini akan menjadi Opening Stock untuk hari berikutnya. Aksi ini bisa dibatalkan lagi lewat "Ubah Manual" bila diperlukan.`)) return;
-
-    const endingByCode = {};
-    RESULT_ROWS.forEach(r => {
-        endingByCode[r.code] = r.ending;
-    });
-
-    const endingIds = Array.from(document.querySelectorAll(".ending-check:checked")).map(el=>el.value);
-    const nextDate = await InvDB.closeBusinessDay(BUSINESS_DATE, endingByCode, "", endingIds);
-
-    BUSINESS_DATE = nextDate;
-    await refreshOpeningForPeriod();
-
-    renderBizDate();
-
-    document.getElementById("resultSection").style.display = "none";
-    RESULT_ROWS = [];
-
-    toast(`✓ Hari ditutup. Business date sekarang: ${nextDate}`,"success");
-    window.scrollTo({top:0, behavior:"smooth"});
 }
 
 function sumByCode(rows){
