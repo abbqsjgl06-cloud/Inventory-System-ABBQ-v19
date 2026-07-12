@@ -35,8 +35,11 @@ document.addEventListener("DOMContentLoaded", async () => {
 });
 
 function renderBizDate(){
+    const [ty,tm,td] = TRACKED_BUSINESS_DATE.split("-");
+    document.getElementById("bizDateDisplay").textContent = `${td}/${tm}/${ty}`;
+
     const [y,m,d] = TARGET_DATE.split("-");
-    document.getElementById("bizDateDisplay").textContent = `${d}/${m}/${y}`;
+    document.getElementById("targetDateDisplay").textContent = `${d}/${m}/${y}`;
 }
 
 async function applyTargetDate(){
