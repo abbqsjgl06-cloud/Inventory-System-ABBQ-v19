@@ -7,9 +7,9 @@ let RESULT_ROWS = [];
 let CURRENT_FILTER = "all";
 let OUTLET_NAME = "ABBQ Indonesia";
 let BUSINESS_DATE = null;
-let OPENING_EOD = null; // EOD snapshot for (selected periodStart - 1 day), if any
+let OPENING_DATA = null; // { date, byCode, sessions } from last stock take, if any
 let OPENING_MODE = "manual"; // "auto" | "manual"
-let ENDING_EOD = null;  // EOD snapshot for periodEnd, if any
+let ENDING_DATA = null;  // { date, byCode, sessions } from last stock take, if any
 let ENDING_MODE = "manual"; // "auto" | "manual"
 
 document.addEventListener("DOMContentLoaded", async () => {
@@ -44,6 +44,18 @@ function previousDateStr(dateStr){
     return d.toISOString().slice(0,10);
 }
 
+/* ================= LAST STOCK TAKE LOOKUP ================= */
+/* Pulls straight from Stock Opname's latest submission(s) for a
+   given date (combining Frontliner + Kitchen, whatever categories
+   were submitted that day) - no dependency on End of Day closure. */
+
+function getLastStockTakeForDate(dateStr){
+    const sessions = dedupeLatestSessions(STOCK_SESSIONS).filter(s => s.tanggal === dateStr);
+    if(sessions.length === 0) return null;
+    const byCode = sumSessionsByCode(sessions.map(s=>s.id));
+    return { date: dateStr, byCode, sessions };
+}
+
 /* ================= BUSINESS DATE ================= */
 
 function renderBizDate(){
@@ -70,20 +82,20 @@ async function saveManualBizDate(){
 /* ================= PERIOD CHANGE (refreshes opening, ending, usage) ================= */
 
 async function onPeriodChange(){
-    await refreshOpeningForPeriod();
-    await refreshEndingForPeriod();
+    refreshOpeningForPeriod();
+    refreshEndingForPeriod();
     await refreshUsageAutoList();
 }
 
-/* ================= OPENING MODE (auto from EOD of the day before periodStart) ================= */
+/* ================= OPENING MODE (auto from last stock take the day before periodStart) ================= */
 
-async function refreshOpeningForPeriod(){
+function refreshOpeningForPeriod(){
     const periodStart = document.getElementById("periodStart").value;
-    if(!periodStart){ OPENING_EOD = null; renderOpeningMode(); return; }
+    if(!periodStart){ OPENING_DATA = null; renderOpeningMode(); return; }
 
     const prevDate = previousDateStr(periodStart);
-    OPENING_EOD = await InvDB.getEodSnapshot(prevDate);
-    OPENING_MODE = OPENING_EOD ? "auto" : "manual";
+    OPENING_DATA = getLastStockTakeForDate(prevDate);
+    OPENING_MODE = OPENING_DATA ? "auto" : "manual";
     renderOpeningMode();
 }
 
@@ -92,16 +104,16 @@ function renderOpeningMode(){
     const manualBox = document.getElementById("openingManualBox");
     const backBtn = document.getElementById("backToAutoBtn");
 
-    if(OPENING_MODE === "auto" && OPENING_EOD){
+    if(OPENING_MODE === "auto" && OPENING_DATA){
         autoBox.style.display = "block";
         manualBox.style.display = "none";
-        const [y,m,d] = OPENING_EOD.date.split("-");
+        const [y,m,d] = OPENING_DATA.date.split("-");
         document.getElementById("openingAutoDate").textContent = `${d}/${m}/${y}`;
-        document.getElementById("openingAutoCount").textContent = Object.keys(OPENING_EOD.endingByCode).length;
+        document.getElementById("openingAutoCount").textContent = Object.keys(OPENING_DATA.byCode).length;
     } else {
-        autoBox.style.display = OPENING_EOD ? "block" : "none";
+        autoBox.style.display = OPENING_DATA ? "block" : "none";
         manualBox.style.display = "block";
-        backBtn.style.display = OPENING_EOD ? "inline-flex" : "none";
+        backBtn.style.display = OPENING_DATA ? "inline-flex" : "none";
     }
 }
 
@@ -115,14 +127,14 @@ function useAutoOpening(){
     renderOpeningMode();
 }
 
-/* ================= ENDING MODE (auto from EOD of periodEnd) ================= */
+/* ================= ENDING MODE (auto from last stock take at periodEnd) ================= */
 
-async function refreshEndingForPeriod(){
+function refreshEndingForPeriod(){
     const periodEnd = document.getElementById("periodEnd").value;
-    if(!periodEnd){ ENDING_EOD = null; renderEndingMode(); return; }
+    if(!periodEnd){ ENDING_DATA = null; renderEndingMode(); return; }
 
-    ENDING_EOD = await InvDB.getEodSnapshot(periodEnd);
-    ENDING_MODE = ENDING_EOD ? "auto" : "manual";
+    ENDING_DATA = getLastStockTakeForDate(periodEnd);
+    ENDING_MODE = ENDING_DATA ? "auto" : "manual";
     renderEndingMode();
 }
 
@@ -131,16 +143,16 @@ function renderEndingMode(){
     const manualBox = document.getElementById("endingManualBox");
     const backBtn = document.getElementById("backToAutoEndingBtn");
 
-    if(ENDING_MODE === "auto" && ENDING_EOD){
+    if(ENDING_MODE === "auto" && ENDING_DATA){
         autoBox.style.display = "block";
         manualBox.style.display = "none";
-        const [y,m,d] = ENDING_EOD.date.split("-");
+        const [y,m,d] = ENDING_DATA.date.split("-");
         document.getElementById("endingAutoDate").textContent = `${d}/${m}/${y}`;
-        document.getElementById("endingAutoCount").textContent = Object.keys(ENDING_EOD.endingByCode).length;
+        document.getElementById("endingAutoCount").textContent = Object.keys(ENDING_DATA.byCode).length;
     } else {
-        autoBox.style.display = ENDING_EOD ? "block" : "none";
+        autoBox.style.display = ENDING_DATA ? "block" : "none";
         manualBox.style.display = "block";
-        backBtn.style.display = ENDING_EOD ? "inline-flex" : "none";
+        backBtn.style.display = ENDING_DATA ? "inline-flex" : "none";
     }
 }
 
@@ -244,8 +256,8 @@ async function calculateVariance(){
     if(!periodStart || !periodEnd){ toast("Lengkapi periode tanggal","error"); return; }
 
     let opening;
-    if(OPENING_MODE === "auto" && OPENING_EOD){
-        opening = { ...OPENING_EOD.endingByCode };
+    if(OPENING_MODE === "auto" && OPENING_DATA){
+        opening = { ...OPENING_DATA.byCode };
     } else {
         const openingIds = Array.from(document.querySelectorAll(".opening-check:checked")).map(el=>el.value);
         if(openingIds.length === 0){ toast("Pilih minimal 1 sesi Opening Stock","error"); return; }
@@ -253,8 +265,8 @@ async function calculateVariance(){
     }
 
     let ending;
-    if(ENDING_MODE === "auto" && ENDING_EOD){
-        ending = { ...ENDING_EOD.endingByCode };
+    if(ENDING_MODE === "auto" && ENDING_DATA){
+        ending = { ...ENDING_DATA.byCode };
     } else {
         const endingIds = Array.from(document.querySelectorAll(".ending-check:checked")).map(el=>el.value);
         if(endingIds.length === 0){ toast("Pilih minimal 1 sesi Ending Stock","error"); return; }

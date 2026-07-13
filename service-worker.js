@@ -1,4 +1,4 @@
-const CACHE_NAME = 'inventory-abbq-shell-v23';
+const CACHE_NAME = 'inventory-abbq-shell-v24';
 const ASSETS = [
   './',
   './index.html',

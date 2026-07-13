@@ -7,7 +7,7 @@
 <link rel="icon" href="../logo.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="../shared/inv-style.css?v=30">
+<link rel="stylesheet" href="../shared/inv-style.css?v=31">
 <style>
   :root{ --accent:#B0281C; --accent-tint:#FBE7E4; }
   thead th{background:var(--accent-tint);}
@@ -68,7 +68,7 @@
     <div class="panel-title">2. Opening Stock</div>
     <div id="openingAutoBox" style="display:none;">
       <p style="font-size:13px;color:var(--muted);margin-bottom:10px;">
-        ✓ Otomatis terisi dari Ending Stock hasil <b>Tutup Hari</b> tanggal <b id="openingAutoDate">-</b>
+        ✓ Otomatis terisi dari input Stock Opname terakhir tanggal <b id="openingAutoDate">-</b>
         (<span id="openingAutoCount">0</span> item).
       </p>
       <button class="btn btn-ghost" style="width:auto;padding:8px 14px;font-size:12px;" onclick="useManualOpening()">Pakai Sesi Stock Opname Manual Sebagai Gantinya</button>
@@ -84,7 +84,7 @@
     <div class="panel-title">3. Ending Stock</div>
     <div id="endingAutoBox" style="display:none;">
       <p style="font-size:13px;color:var(--muted);margin-bottom:10px;">
-        ✓ Otomatis terisi dari Ending Stock hasil <b>Tutup Hari</b> tanggal <b id="endingAutoDate">-</b>
+        ✓ Otomatis terisi dari input Stock Opname terakhir tanggal <b id="endingAutoDate">-</b>
         (<span id="endingAutoCount">0</span> item).
       </p>
       <button class="btn btn-ghost" style="width:auto;padding:8px 14px;font-size:12px;" onclick="useManualEnding()">Pakai Sesi Stock Opname Manual Sebagai Gantinya</button>
@@ -158,16 +158,16 @@
 
 <div class="notif" id="notif"></div>
 
-<script src="../shared/xlsx.full.min.js?v=30"></script>
+<script src="../shared/xlsx.full.min.js?v=31"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script>
 <script src="../shared/firebase-config.js"></script>
 <script>window.AUTH_GUARD_DEPTH = 1;</script>
-<script src="../shared/auth-guard.js?v=30"></script>
-<script src="../shared/seed-data.js?v=30"></script>
-<script src="../shared/inv-db.js?v=30"></script>
-<script src="../shared/ui-dialog.js?v=30"></script>
-<script src="app.js?v=30"></script>
+<script src="../shared/auth-guard.js?v=31"></script>
+<script src="../shared/seed-data.js?v=31"></script>
+<script src="../shared/inv-db.js?v=31"></script>
+<script src="../shared/ui-dialog.js?v=31"></script>
+<script src="app.js?v=31"></script>
 </body>
 </html>

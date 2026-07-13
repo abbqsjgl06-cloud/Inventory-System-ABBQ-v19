@@ -581,19 +581,5 @@
 "item":"A FORK PUTIH",
 "konv":100,
 "uom":"PC"
-},
-{
-"nomor":84,
-"kode":"301696",
-"item":"KERTAS JAVA SUPERFOOD",
-"konv":100,
-"uom":"GR"
-},
-{
-"nomor":85,
-"kode":"301697",
-"item":"QUICK FRESH HONEY",
-"konv":100,
-"uom":"GR"
 }
 ]

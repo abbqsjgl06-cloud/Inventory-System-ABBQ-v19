@@ -5,6 +5,40 @@ let SELECTED_ITEM = null;
 let ALL_RECEIPTS = [];
 let MATERIALS_LOADED = false;
 let IS_ADMIN = false;
+let EDITING_ID = null;
+
+function editReceipt(id){
+    EDITING_ID = id;
+    renderHistory();
+}
+
+function cancelReceiptEdit(){
+    EDITING_ID = null;
+    renderHistory();
+}
+
+async function saveReceiptEdit(id){
+    const receipt = ALL_RECEIPTS.find(r => r.id === id);
+    if(!receipt) return;
+
+    const qtyInput = document.getElementById(`editQty_${id}`);
+    const noteInput = document.getElementById(`editNote_${id}`);
+    const newQty = Number(qtyInput.value);
+    if(!newQty || newQty <= 0){ toast("Qty harus lebih dari 0","error"); return; }
+
+    receipt.qty = newQty;
+    receipt.note = noteInput.value.trim();
+
+    try {
+        await InvDB.put("goodsReceipt", receipt);
+        EDITING_ID = null;
+        renderHistory();
+        toast("✓ Perubahan disimpan","success");
+    } catch(err){
+        console.error("Gagal update:", err);
+        toast("Gagal simpan. Cek koneksi internet.","error");
+    }
+}
 
 document.addEventListener("authReady", (e) => {
     IS_ADMIN = e.detail.role === "admin";
@@ -254,7 +288,20 @@ function renderHistory(){
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    ${rows.map(r => `
+                                    ${rows.map(r => r.id === EDITING_ID ? `
+                                        <tr>
+                                            <td></td>
+                                            <td>${r.material_code}</td>
+                                            <td>${r.material_name}</td>
+                                            <td class="num"><input type="number" id="editQty_${r.id}" value="${r.qty}" style="width:70px;padding:4px 6px;"></td>
+                                            <td>${r.uom}</td>
+                                            <td><input type="text" id="editNote_${r.id}" value="${r.note || ''}" style="width:100px;padding:4px 6px;"></td>
+                                            <td style="white-space:nowrap;">
+                                                <button class="btn btn-primary" style="padding:6px 10px;font-size:12px;width:auto;" onclick="saveReceiptEdit('${r.id}')">Simpan</button>
+                                                <button class="btn btn-ghost" style="padding:6px 10px;font-size:12px;width:auto;" onclick="cancelReceiptEdit()">Batal</button>
+                                            </td>
+                                        </tr>
+                                    ` : `
                                         <tr>
                                             <td><input type="checkbox" class="row-check" value="${r.id}" onchange="updateSelectedCount()"></td>
                                             <td>${r.material_code}</td>
@@ -262,7 +309,10 @@ function renderHistory(){
                                             <td class="num">${r.qty}</td>
                                             <td>${r.uom}</td>
                                             <td>${r.note || "-"}</td>
-                                            <td><button class="btn btn-ghost" style="padding:6px 10px;font-size:12px;width:auto;" onclick="deleteReceipt('${r.id}')">Hapus</button></td>
+                                            <td style="white-space:nowrap;">
+                                                ${IS_ADMIN ? `<button class="btn btn-ghost" style="padding:6px 10px;font-size:12px;width:auto;" onclick="editReceipt('${r.id}')">Edit</button>` : ""}
+                                                <button class="btn btn-ghost" style="padding:6px 10px;font-size:12px;width:auto;" onclick="deleteReceipt('${r.id}')">Hapus</button>
+                                            </td>
                                         </tr>
                                     `).join("")}
                                 </tbody>
@@ -337,6 +387,30 @@ function toast(msg, type="success"){
 
 /* ================= ADMIN: BULK IMPORT DARI EXCEL ================= */
 
+function parseFlexibleDateGR(value){
+    if(value === null || value === undefined || value === "") return null;
+    if(value instanceof Date && !isNaN(value)) return value.toISOString().slice(0,10);
+
+    if(typeof value === "number"){
+        try {
+            const parsed = XLSX.SSF.parse_date_code(value);
+            if(parsed) return new Date(Date.UTC(parsed.y, parsed.m - 1, parsed.d)).toISOString().slice(0,10);
+        } catch(e){ /* fall through */ }
+    }
+
+    if(typeof value === "string"){
+        const s = value.trim();
+        let m = s.match(/^(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})/);
+        if(m) return `${m[1]}-${String(m[2]).padStart(2,"0")}-${String(m[3]).padStart(2,"0")}`;
+        m = s.match(/^(\d{1,2})[-\/](\d{1,2})[-\/](\d{4})/);
+        if(m) return `${m[3]}-${String(m[2]).padStart(2,"0")}-${String(m[1]).padStart(2,"0")}`;
+        const native = new Date(s);
+        if(!isNaN(native)) return native.toISOString().slice(0,10);
+    }
+
+    return null;
+}
+
 async function handleAdminImport(e){
     const file = e.target.files[0];
     if(!file) return;
@@ -363,7 +437,8 @@ async function handleAdminImport(e){
             if(!material){ skipped++; return; }
 
             const source = String(sumber).trim().toUpperCase() === "CK" ? "CK" : "Supplier";
-            const dateStr = tanggal instanceof Date ? tanggal.toISOString().slice(0,10) : String(tanggal).trim();
+            const dateStr = parseFlexibleDateGR(tanggal);
+            if(!dateStr){ skipped++; return; }
 
             records.push({
                 id: "gr_" + Date.now() + "_" + i + "_" + Math.random().toString(36).slice(2,5),

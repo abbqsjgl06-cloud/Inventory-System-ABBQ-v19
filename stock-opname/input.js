@@ -9,18 +9,6 @@ let databaseData = [];
 // ADMIN: UPLOAD QTY DARI EXCEL
 // =====================================
 
-document.addEventListener("authReady", (e) => {
-    const box = document.getElementById("adminUploadBox");
-    if(box) box.style.display = (e.detail.role === "admin") ? "block" : "none";
-});
-
-document.addEventListener("DOMContentLoaded", () => {
-    const fileInput = document.getElementById("adminUploadFile");
-    if(fileInput){
-        fileInput.addEventListener("change", handleAdminUpload);
-    }
-});
-
 function handleAdminUpload(e){
     const file = e.target.files[0];
     if(!file) return;
@@ -135,92 +123,194 @@ document.addEventListener("DOMContentLoaded", () => {
 
 });
 
+document.addEventListener("authReady", (e) => {
+    const box = document.getElementById("adminUploadBox");
+    if(box) box.style.display = (e.detail.role === "admin") ? "block" : "none";
+
+    const manageBox = document.getElementById("adminManageBox");
+    if(manageBox) manageBox.style.display = (e.detail.role === "admin") ? "block" : "none";
+});
+
+document.addEventListener("DOMContentLoaded", () => {
+    const fileInput = document.getElementById("adminUploadFile");
+    if(fileInput){
+        fileInput.addEventListener("change", handleAdminUpload);
+    }
+});
+
+// =====================================
+// ADMIN: KELOLA DAFTAR ITEM
+// =====================================
+
+function toggleAdminManage(){
+    const panel = document.getElementById("adminManagePanel");
+    const arrow = document.getElementById("adminManageArrow");
+    const showing = panel.style.display !== "none";
+    panel.style.display = showing ? "none" : "block";
+    arrow.textContent = showing ? "▾" : "▴";
+}
+
+function renderAdminItemList(){
+    const label = document.getElementById("adminManageListLabel");
+    if(label) label.textContent = `${stockMeta.kategori} - ${stockMeta.type}`;
+
+    const box = document.getElementById("adminItemListBox");
+    if(!box) return;
+
+    if(databaseData.length === 0){
+        box.innerHTML = `<p style="color:#666;font-size:13px;">Belum ada item.</p>`;
+        return;
+    }
+
+    box.innerHTML = databaseData.map((item, idx) => `
+        <div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #eee;font-size:13px;">
+            <div style="flex:1;">
+                <b>${item.kode}</b> - ${item.item}<br>
+                <span style="color:#666;">Konv: ${item.konv} · UOM: ${item.uom}</span>
+            </div>
+            <button type="button" onclick="editAdminItem(${idx})" style="background:#f1c40f;border:none;border-radius:6px;padding:6px 10px;font-size:12px;cursor:pointer;">Edit</button>
+            <button type="button" onclick="deleteAdminItem(${idx})" style="background:#e74c3c;color:#fff;border:none;border-radius:6px;padding:6px 10px;font-size:12px;cursor:pointer;">Hapus</button>
+        </div>
+    `).join("");
+}
+
+async function persistCurrentList(){
+    await InvDB.put("stockOpnameLists", { id: CURRENT_LIST_ID, items: databaseData });
+}
+
+async function addAdminItem(){
+    const kode = document.getElementById("newItemKode").value.trim();
+    const nama = document.getElementById("newItemNama").value.trim();
+    const uom = document.getElementById("newItemUom").value.trim();
+    const konv = Number(document.getElementById("newItemKonv").value) || 1;
+
+    if(!kode || !nama || !uom){
+        tampilNotif("Lengkapi kode, nama, dan UOM", "error");
+        return;
+    }
+
+    if(databaseData.some(i => String(i.kode).trim() === kode)){
+        tampilNotif("Kode item sudah ada di daftar ini", "error");
+        return;
+    }
+
+    const nextNomor = databaseData.length > 0 ? Math.max(...databaseData.map(i=>Number(i.nomor)||0)) + 1 : 1;
+    databaseData.push({ nomor: nextNomor, kode, item: nama, konv, uom });
+
+    try {
+        await persistCurrentList();
+        document.getElementById("newItemKode").value = "";
+        document.getElementById("newItemNama").value = "";
+        document.getElementById("newItemUom").value = "";
+        document.getElementById("newItemKonv").value = "";
+        renderTable();
+        renderAdminItemList();
+        tampilNotif("✓ Item ditambahkan", "success");
+    } catch(err){
+        console.error(err);
+        tampilNotif("Gagal simpan ke server", "error");
+    }
+}
+
+async function editAdminItem(idx){
+    const item = databaseData[idx];
+    if(!item) return;
+
+    const newNama = prompt("Nama item:", item.item);
+    if(newNama === null) return;
+    const newUom = prompt("UOM:", item.uom);
+    if(newUom === null) return;
+    const newKonv = prompt("Konv:", item.konv);
+    if(newKonv === null) return;
+
+    item.item = newNama.trim() || item.item;
+    item.uom = newUom.trim() || item.uom;
+    item.konv = Number(newKonv) || item.konv;
+
+    try {
+        await persistCurrentList();
+        renderTable();
+        renderAdminItemList();
+        tampilNotif("✓ Item diperbarui", "success");
+    } catch(err){
+        console.error(err);
+        tampilNotif("Gagal simpan ke server", "error");
+    }
+}
+
+async function deleteAdminItem(idx){
+    const item = databaseData[idx];
+    if(!item) return;
+
+    if(!await uiConfirm(`Hapus item "${item.item}" (${item.kode}) dari daftar ${stockMeta.kategori} - ${stockMeta.type}?`)) return;
+
+    databaseData.splice(idx, 1);
+
+    try {
+        await persistCurrentList();
+        renderTable();
+        renderAdminItemList();
+        tampilNotif("✓ Item dihapus", "success");
+    } catch(err){
+        console.error(err);
+        tampilNotif("Gagal simpan ke server", "error");
+    }
+}
+
 // =====================================
 // LOAD DATABASE
 // =====================================
 
-function loadDatabase(){
+let CURRENT_LIST_ID = "";
 
-    let databaseFile = "";
+function getListId(){
+    if(stockMeta.kategori === "Kitchen" && stockMeta.type === "Daily") return "kitchen_daily";
+    if(stockMeta.kategori === "Frontliner" && stockMeta.type === "Daily") return "frontliner_daily";
+    if(stockMeta.kategori === "Kitchen" && stockMeta.type === "WM") return "kitchen_wm";
+    if(stockMeta.kategori === "Frontliner" && stockMeta.type === "WM") return "frontliner_wm";
+    return "";
+}
 
-    if(
-        stockMeta.kategori === "Kitchen" &&
-        stockMeta.type === "Daily"
-    ){
+function getStaticFileFor(listId){
+    const map = {
+        kitchen_daily: "database/daily_kitchen.json",
+        frontliner_daily: "database/daily_frontliner.json",
+        kitchen_wm: "database/wm_kitchen.json",
+        frontliner_wm: "database/wm_frontliner.json"
+    };
+    return map[listId] || "";
+}
 
-        databaseFile =
-            "database/daily_kitchen.json";
+async function loadDatabase(){
 
+    CURRENT_LIST_ID = getListId();
+
+    if(!CURRENT_LIST_ID){
+        tampilNotif("Kategori/Type tidak dikenali", "error");
+        return;
     }
 
-    else if(
-        stockMeta.kategori === "Frontliner" &&
-        stockMeta.type === "Daily"
-    ){
+    try {
+        let doc = await InvDB.get("stockOpnameLists", CURRENT_LIST_ID);
 
-        databaseFile =
-            "database/daily_frontliner.json";
-
-    }
-
-    else if(
-        stockMeta.kategori === "Kitchen" &&
-        stockMeta.type === "WM"
-    ){
-
-        databaseFile =
-            "database/wm_kitchen.json";
-
-    }
-
-    else if(
-        stockMeta.kategori === "Frontliner" &&
-        stockMeta.type === "WM"
-    ){
-
-        databaseFile =
-            "database/wm_frontliner.json";
-
-    }
-
-    console.log(databaseFile);
-
-    fetch(
-        databaseFile + "?v=" + Date.now()
-    )
-
-    .then(response=>{
-
-        if(!response.ok){
-
-            throw new Error(
-                "Database tidak ditemukan"
-            );
-
+        if(!doc || !Array.isArray(doc.items) || doc.items.length === 0){
+            // Seed once from the original static JSON file
+            const staticFile = getStaticFileFor(CURRENT_LIST_ID);
+            const res = await fetch(staticFile + "?v=" + Date.now());
+            if(!res.ok) throw new Error("Database awal tidak ditemukan");
+            const seedItems = await res.json();
+            doc = { id: CURRENT_LIST_ID, items: seedItems };
+            await InvDB.put("stockOpnameLists", doc);
         }
 
-        return response.json();
-
-    })
-
-    .then(data=>{
-
-        databaseData = data;
-
+        databaseData = doc.items;
         renderTable();
+        renderAdminItemList();
 
-    })
-
-    .catch(error=>{
-
+    } catch(error){
         console.error(error);
-
-        tampilNotif(
-            "Gagal membuka database",
-            "error"
-        );
-
-    });
+        tampilNotif("Gagal membuka database", "error");
+    }
 
 }
 
