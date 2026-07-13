@@ -52,11 +52,57 @@ document.addEventListener("DOMContentLoaded", function () {
         var hideStyle = document.getElementById("auth-guard-hide");
         if (hideStyle) hideStyle.remove();
 
+        _injectUserBadge(user.email, window.CURRENT_ROLE);
+
         document.dispatchEvent(new CustomEvent("authReady", {
             detail: { role: window.CURRENT_ROLE, email: user.email }
         }));
     });
 });
+
+/* ==========================================
+   Floating badge: menampilkan email & role
+   (Admin/User) yang sedang login, di semua
+   halaman yang memuat auth-guard.js.
+========================================== */
+function _injectUserBadge(email, role) {
+    if (document.getElementById("authUserBadge")) return;
+
+    // Turunkan posisi badge kalau halaman index utama sudah punya
+    // badge Business Date di pojok kanan atas, supaya tidak tumpuk.
+    var hasBizDateBadge = !!document.querySelector(".biz-date-badge");
+    var topOffset = hasBizDateBadge ? "62px" : "14px";
+
+    var isAdmin = role === "admin";
+    var roleLabel = isAdmin ? "Admin" : "User";
+    var dotColor = isAdmin ? "#F2B400" : "#2E7D4F";
+
+    var badge = document.createElement("div");
+    badge.id = "authUserBadge";
+    badge.title = email;
+    badge.style.cssText = [
+        "position:fixed", "top:" + topOffset, "right:14px", "z-index:9999",
+        "display:flex", "align-items:center", "gap:6px",
+        "max-width:min(62vw,320px)",
+        "background:rgba(28,27,25,.92)", "color:#fff",
+        "font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif",
+        "font-size:11px", "font-weight:600", "line-height:1.2",
+        "padding:6px 12px", "border-radius:999px",
+        "box-shadow:0 2px 8px rgba(0,0,0,.18)",
+        "pointer-events:none"
+    ].join(";");
+
+    var dot = document.createElement("span");
+    dot.style.cssText = "width:7px;height:7px;border-radius:50%;flex:none;background:" + dotColor + ";";
+
+    var text = document.createElement("span");
+    text.style.cssText = "overflow:hidden;text-overflow:ellipsis;white-space:nowrap;";
+    text.textContent = email + " · " + roleLabel;
+
+    badge.appendChild(dot);
+    badge.appendChild(text);
+    document.body.appendChild(badge);
+}
 
 async function authGuardLogout() {
     await firebase.auth().signOut();

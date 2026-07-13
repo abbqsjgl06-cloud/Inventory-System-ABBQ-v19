@@ -17,6 +17,12 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     document.getElementById("periodLabel").value = defaultPeriodLabel();
 
+    const end = new Date();
+    const start = new Date();
+    start.setDate(start.getDate() - 30);
+    document.getElementById("histFilterStart").value = start.toISOString().slice(0,10);
+    document.getElementById("histFilterEnd").value = end.toISOString().slice(0,10);
+
     document.getElementById("fileInput").addEventListener("change", handleFile);
     renderImportHistory();
 });
@@ -212,10 +218,26 @@ async function deleteImport(id){
 }
 
 function renderImportHistory(){
-    const sorted = [...ALL_IMPORTS].sort((a,b)=>b.dateImported.localeCompare(a.dateImported));
+    const startEl = document.getElementById("histFilterStart");
+    const endEl = document.getElementById("histFilterEnd");
+    const start = startEl ? startEl.value : "";
+    const end = endEl ? endEl.value : "";
+
+    const filtered = ALL_IMPORTS.filter(h => {
+        if(!start && !end) return true;
+        // Prefer the detected data date range; fall back to upload date if not detected.
+        const rangeStart = h.periodStart || (h.dateImported ? h.dateImported.slice(0,10) : null);
+        const rangeEnd = h.periodEnd || (h.dateImported ? h.dateImported.slice(0,10) : null);
+        if(!rangeStart || !rangeEnd) return true;
+        if(start && rangeEnd < start) return false;
+        if(end && rangeStart > end) return false;
+        return true;
+    });
+
+    const sorted = [...filtered].sort((a,b)=>b.dateImported.localeCompare(a.dateImported));
     if(sorted.length === 0){
         document.getElementById("importHistoryBody").innerHTML =
-            `<tr><td colspan="6" class="empty">Belum ada import</td></tr>`;
+            `<tr><td colspan="6" class="empty">${ALL_IMPORTS.length === 0 ? "Belum ada import" : "Tidak ada riwayat pada rentang tanggal ini"}</td></tr>`;
         return;
     }
     document.getElementById("importHistoryBody").innerHTML = sorted.map(h => `

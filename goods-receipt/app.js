@@ -424,19 +424,54 @@ async function handleAdminImport(e){
         const sheet = wb.Sheets[wb.SheetNames[0]];
         const rows = XLSX.utils.sheet_to_json(sheet, { defval: "", header: 1 });
 
+        if(rows.length === 0){
+            resultEl.innerHTML = `<span style="color:#c0392b;">File kosong.</span>`;
+            e.target.value = "";
+            return;
+        }
+
+        // Cari posisi kolom berdasarkan NAMA HEADER (bukan urutan tetap),
+        // supaya tetap benar walau ada kolom tambahan (mis. Item, UOM) di antaranya.
+        const headerRow = rows[0].map(h => String(h).trim().toLowerCase());
+        const findCol = (...names) => {
+            for(const n of names){
+                const idx = headerRow.indexOf(n);
+                if(idx !== -1) return idx;
+            }
+            return -1;
+        };
+        const colTanggal = findCol("tanggal", "date");
+        const colSumber = findCol("sumber", "source");
+        const colKode = findCol("kode", "code");
+        const colQty = findCol("qty", "quantity");
+        const colKet = findCol("keterangan/no po", "keterangan", "no po", "ket", "note");
+
+        if(colTanggal === -1 || colSumber === -1 || colKode === -1 || colQty === -1){
+            resultEl.innerHTML = `<span style="color:#c0392b;">Kolom Tanggal/Sumber/Kode/Qty tidak ditemukan di file. Gunakan file hasil tombol Export di halaman ini sebagai template.</span>`;
+            e.target.value = "";
+            return;
+        }
+
         let created = 0, skipped = 0;
         const now = new Date().toISOString();
         const records = [];
 
         rows.forEach((row, i) => {
             if(i === 0) return; // header row
-            const [tanggal, sumber, kode, qty, ket] = row;
-            if(!tanggal || !sumber || !kode){ if(row.some(c=>c!=="")) skipped++; return; }
+            if(row.every(c => c === "")) return; // baris kosong
+
+            const tanggal = row[colTanggal];
+            const sumber = row[colSumber];
+            const kode = row[colKode];
+            const qty = row[colQty];
+            const ket = colKet !== -1 ? row[colKet] : "";
+
+            if(!tanggal || !sumber || !kode){ skipped++; return; }
 
             const material = MATERIALS.find(m => String(m.code).trim() === String(kode).trim());
             if(!material){ skipped++; return; }
 
-            const source = String(sumber).trim().toUpperCase() === "CK" ? "CK" : "Supplier";
+            const source = String(sumber).trim().toUpperCase().includes("CK") ? "CK" : "Supplier";
             const dateStr = parseFlexibleDateGR(tanggal);
             if(!dateStr){ skipped++; return; }
 

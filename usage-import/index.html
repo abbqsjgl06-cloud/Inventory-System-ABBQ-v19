@@ -97,6 +97,17 @@
 
   <div class="panel">
     <div class="panel-title">Riwayat Import</div>
+    <div class="field-row">
+      <div class="field">
+        <label>Dari Tanggal</label>
+        <input type="date" id="histFilterStart" onchange="renderImportHistory()">
+      </div>
+      <div class="field">
+        <label>Sampai Tanggal</label>
+        <input type="date" id="histFilterEnd" onchange="renderImportHistory()">
+      </div>
+    </div>
+    <p style="font-size:11px;color:var(--muted);margin:-6px 0 12px;">Difilter berdasarkan rentang tanggal data di file; jika tanggal tidak terdeteksi saat import, dipakai waktu upload.</p>
     <div class="table-wrap">
       <table>
         <thead><tr><th>Rentang Tanggal Data (dari file)</th><th>Periode (Label)</th><th>Waktu Upload</th><th>File</th><th class="num">Baris</th><th class="num">Menu Tanpa BOM</th><th></th></tr></thead>
@@ -115,10 +126,10 @@
 <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script>
 <script src="../shared/firebase-config.js"></script>
 <script>window.AUTH_GUARD_DEPTH = 1;</script>
-<script src="../shared/auth-guard.js?v=25"></script>
+<script src="../shared/auth-guard.js?v=32"></script>
 <script src="../shared/seed-data.js?v=25"></script>
 <script src="../shared/inv-db.js?v=25"></script>
 <script src="../shared/ui-dialog.js?v=25"></script>
-<script src="app.js?v=25"></script>
+<script src="app.js?v=32"></script>
 </body>
 </html>
