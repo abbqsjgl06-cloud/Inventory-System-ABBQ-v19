@@ -35,8 +35,28 @@ const InvDB = (() => {
         transfer: "id",
         usageImports: "id",
         settings: "key",
-        eodSnapshots: "id"
+        eodSnapshots: "id",
+        accounts: "email",
+        outlets: "id"
     };
+
+    // Collections whose documents get tagged & filtered by outlet.
+    // Master data (materials/bom/menus/outlets/accounts) is intentionally
+    // NOT in this list - it stays shared across every outlet.
+    //
+    // IMPORTANT (backward compatibility): filtering by outlet only kicks in
+    // once window.CURRENT_OUTLET_ID is set, which only happens once an
+    // account has actually been assigned an outlet via the "Kelola Akun"
+    // page. Until then, every account (including the existing admin/user
+    // accounts) behaves exactly as before - nothing changes automatically.
+    const OUTLET_SCOPED = new Set([
+        "goodsReceipt", "transfer", "usageImports", "usageDetail",
+        "stockOpname", "wasteRecords", "eodSnapshots"
+    ]);
+
+    function currentOutletId() {
+        return (typeof window !== "undefined" && window.CURRENT_OUTLET_ID) ? window.CURRENT_OUTLET_ID : null;
+    }
 
     function keyPathFor(storeName) {
         return KEY_PATHS[storeName] || "id";
@@ -70,6 +90,11 @@ const InvDB = (() => {
     ====================================== */
 
     async function getAll(storeName) {
+        const outletId = currentOutletId();
+        if (OUTLET_SCOPED.has(storeName) && outletId) {
+            const snap = await col(storeName).where("outletId", "==", outletId).get();
+            return snap.docs.map(d => d.data());
+        }
         const snap = await col(storeName).get();
         return snap.docs.map(d => d.data());
     }
@@ -85,9 +110,14 @@ const InvDB = (() => {
         let docId = value[kp];
         let data = value;
 
+        const outletId = currentOutletId();
+        if (OUTLET_SCOPED.has(storeName) && outletId && !data.outletId) {
+            data = { ...data, outletId };
+        }
+
         if (docId === undefined || docId === null || docId === "") {
             docId = col(storeName).doc().id;
-            data = { ...value, [kp]: docId };
+            data = { ...data, [kp]: docId };
         }
 
         await col(storeName).doc(String(docId)).set(data);
@@ -98,6 +128,8 @@ const InvDB = (() => {
         if (!values || values.length === 0) return;
         const kp = keyPathFor(storeName);
         const CHUNK = 400; // Firestore batch limit is 500 writes
+        const outletId = currentOutletId();
+        const scoped = OUTLET_SCOPED.has(storeName) && outletId;
 
         for (let i = 0; i < values.length; i += CHUNK) {
             const chunk = values.slice(i, i + CHUNK);
@@ -105,10 +137,10 @@ const InvDB = (() => {
 
             chunk.forEach(v => {
                 let docId = v[kp];
-                let data = v;
+                let data = scoped && !v.outletId ? { ...v, outletId } : v;
                 if (docId === undefined || docId === null || docId === "") {
                     docId = col(storeName).doc().id;
-                    data = { ...v, [kp]: docId };
+                    data = { ...data, [kp]: docId };
                 }
                 batch.set(col(storeName).doc(String(docId)), data);
             });
@@ -134,7 +166,12 @@ const InvDB = (() => {
     }
 
     async function getByIndex(storeName, indexName, value) {
-        const snap = await col(storeName).where(indexName, "==", value).get();
+        let q = col(storeName).where(indexName, "==", value);
+        const outletId = currentOutletId();
+        if (OUTLET_SCOPED.has(storeName) && outletId) {
+            q = q.where("outletId", "==", outletId);
+        }
+        const snap = await q.get();
         return snap.docs.map(d => d.data());
     }
 

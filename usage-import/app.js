@@ -8,6 +8,7 @@ let USAGE_RESULT = {};   // material_code -> qty
 let UNMATCHED_MENUS = new Set();
 let DATE_MIN = null, DATE_MAX = null;
 let ALL_IMPORTS = [];
+let HISTORY_FILTER_APPLIED = false;
 
 document.addEventListener("DOMContentLoaded", async () => {
     await InvDB.ensureMasterSeed();
@@ -24,8 +25,18 @@ document.addEventListener("DOMContentLoaded", async () => {
     document.getElementById("histFilterEnd").value = end.toISOString().slice(0,10);
 
     document.getElementById("fileInput").addEventListener("change", handleFile);
-    renderImportHistory();
+    renderHistoryPrompt();
 });
+
+function applyHistoryFilter(){
+    HISTORY_FILTER_APPLIED = true;
+    renderImportHistory();
+}
+
+function renderHistoryPrompt(){
+    document.getElementById("importHistoryBody").innerHTML =
+        `<tr><td colspan="6" class="empty">Pilih rentang tanggal lalu klik "Tampilkan Riwayat"</td></tr>`;
+}
 
 function defaultPeriodLabel(){
     const d = new Date();
@@ -218,6 +229,8 @@ async function deleteImport(id){
 }
 
 function renderImportHistory(){
+    if(!HISTORY_FILTER_APPLIED){ renderHistoryPrompt(); return; }
+
     const startEl = document.getElementById("histFilterStart");
     const endEl = document.getElementById("histFilterEnd");
     const start = startEl ? startEl.value : "";

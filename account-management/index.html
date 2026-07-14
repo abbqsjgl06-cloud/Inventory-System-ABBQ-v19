@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Kelola Akun — Inventory ABBQ</title>
+<link rel="icon" href="../logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../shared/inv-style.css?v=32">
+<style>
+  :root{ --accent:#4A4A4A; --accent-tint:#ECECEC; }
+  thead th{background:var(--accent-tint);}
+  .info-box{
+    background:#EAF3FF;border:1px solid #BFDBFE;border-radius:12px;
+    padding:12px 14px;font-size:12px;color:#1C3D6B;line-height:1.6;margin-bottom:14px;
+  }
+  .warn-box{
+    background:#FFF7E0;border:1px solid #F1C40F;border-radius:12px;
+    padding:12px 14px;font-size:12px;color:#6B5300;line-height:1.6;margin-bottom:14px;
+  }
+  .role-chip{
+    display:inline-block;padding:2px 9px;border-radius:999px;
+    font-size:11px;font-weight:700;
+  }
+  .role-admin{background:#FDECC8;color:#8A5A00;}
+  .role-user{background:#E6F3EC;color:#1E5C36;}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <a class="back-btn" href="../index.html">←</a>
+  <div class="topbar-title">
+    <div class="topbar-eyebrow">ABBQ Indonesia</div>
+    <div class="topbar-h1">Kelola Akun</div>
+  </div>
+</header>
+
+<main>
+
+  <div id="accessDenied" style="display:none;" class="panel">
+    <div class="panel-title">🚫 Akses Ditolak</div>
+    <p style="font-size:13px;color:var(--muted);">Halaman Kelola Akun hanya bisa dibuka oleh akun <b>Admin</b>.</p>
+    <a class="btn btn-secondary" href="../index.html" style="display:inline-block;margin-top:8px;">← Kembali ke Menu</a>
+  </div>
+
+  <div id="appContent" style="display:none;">
+
+  <div class="panel">
+    <div class="panel-title">🔑 Ganti Password Saya</div>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:12px;">Berlaku untuk akun yang sedang login saat ini (<b id="meEmail">-</b>).</p>
+    <div class="field">
+      <label>Password Saat Ini</label>
+      <input type="password" id="curPass" autocomplete="off">
+    </div>
+    <div class="field">
+      <label>Password Baru (min. 6 karakter)</label>
+      <input type="password" id="newPass" autocomplete="off">
+    </div>
+    <div class="field">
+      <label>Ulangi Password Baru</label>
+      <input type="password" id="newPass2" autocomplete="off">
+    </div>
+    <button class="btn btn-primary" onclick="changeMyPassword()">Simpan Password Baru</button>
+    <div id="passResult" style="font-size:13px;margin-top:8px;"></div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-title">🏬 Kelola Outlet</div>
+    <div class="info-box">
+      Daftar outlet di sini dipakai untuk menandai data (barang masuk, stock opname, dll) milik outlet mana.
+      Menambah outlet di sini <b>belum</b> membuat data outlet tersebut otomatis terpisah di seluruh menu —
+      itu tahap berikutnya (lihat catatan di bawah).
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label>ID Outlet (huruf kecil, tanpa spasi)</label>
+        <input type="text" id="outletId" placeholder="cth: bandung-01">
+      </div>
+      <div class="field">
+        <label>Nama Outlet</label>
+        <input type="text" id="outletName" placeholder="cth: ABBQ Bandung Setiabudi">
+      </div>
+    </div>
+    <button class="btn btn-secondary" onclick="addOutlet()">+ Tambah Outlet</button>
+    <div class="table-wrap" style="margin-top:14px;">
+      <table>
+        <thead><tr><th>ID</th><th>Nama</th><th></th></tr></thead>
+        <tbody id="outletBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-title">👤 Kelola Akun (Role &amp; Outlet)</div>
+    <div class="warn-box">
+      ⚠ <b>Penting:</b> menambahkan email di sini <u>tidak</u> membuat login-nya bisa dipakai.
+      Kredensial (email + password) harus dibuat lebih dulu lewat
+      <b>Firebase Console → Authentication → Add user</b>.
+      Setelah itu, baru daftarkan email yang sama di sini untuk mengatur role &amp; outlet-nya.
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label>Email Akun (persis sama dengan di Firebase Auth)</label>
+        <input type="text" id="acctEmail" placeholder="cth: bandung01@abbq-system.local">
+      </div>
+      <div class="field">
+        <label>Role</label>
+        <select id="acctRole">
+          <option value="user">User (outlet)</option>
+          <option value="admin">Admin (super admin, lihat semua outlet)</option>
+        </select>
+      </div>
+    </div>
+    <div class="field">
+      <label>Outlet (kosongkan jika Admin/super admin)</label>
+      <select id="acctOutlet"><option value="">— Belum ada outlet —</option></select>
+    </div>
+    <button class="btn btn-secondary" onclick="addAccount()">+ Simpan Akun</button>
+    <div class="table-wrap" style="margin-top:14px;">
+      <table>
+        <thead><tr><th>Email</th><th>Role</th><th>Outlet</th><th></th></tr></thead>
+        <tbody id="acctBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="panel" style="border:2px dashed var(--accent);">
+    <div class="panel-title">📋 Cara Reset Password Akun Lain</div>
+    <p style="font-size:12px;color:var(--muted);line-height:1.7;">
+      Karena alasan keamanan Firebase, admin tidak bisa mengubah password akun lain langsung dari halaman ini.
+      Caranya lewat <b>Firebase Console</b>:<br>
+      1. Buka Firebase Console → project <b>abbq-system</b> → Authentication → tab Users.<br>
+      2. Cari email akun yang mau direset, klik titik tiga (⋮) → <b>Delete user</b>.<br>
+      3. Klik <b>Add user</b> → isi email yang sama + password baru.<br>
+      4. Selesai — role &amp; outlet akun itu di tabel atas tidak berubah (tetap nempel ke email yang sama).
+    </p>
+  </div>
+
+  </div>
+
+</main>
+
+<div class="notif" id="notif"></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script>
+<script src="../shared/firebase-config.js"></script>
+<script>window.AUTH_GUARD_DEPTH = 1;</script>
+<script src="../shared/auth-guard.js?v=35"></script>
+<script src="../shared/inv-db.js?v=35"></script>
+<script src="../shared/ui-dialog.js?v=33"></script>
+<script src="app.js?v=1"></script>
+</body>
+</html>

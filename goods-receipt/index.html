@@ -129,6 +129,7 @@
 
   <div class="btn-row" style="margin-bottom:12px;">
     <button class="btn btn-secondary" onclick="exportSelected()">⬇ Export Item Terpilih (<span id="selectedCount">0</span>)</button>
+    <button class="btn btn-ghost" style="color:#C23B2E;border-color:#C23B2E;" onclick="deleteSelected()">🗑 Hapus Terpilih (<span id="selectedCountDel">0</span>)</button>
   </div>
 
   <div id="historyGroups"></div>
@@ -142,11 +143,11 @@
 <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script>
 <script src="../shared/firebase-config.js"></script>
 <script>window.AUTH_GUARD_DEPTH = 1;</script>
-<script src="../shared/auth-guard.js?v=32"></script>
+<script src="../shared/auth-guard.js?v=35"></script>
 <script src="../shared/xlsx.full.min.js?v=31"></script>
 <script src="../shared/seed-data.js?v=31"></script>
-<script src="../shared/inv-db.js?v=31"></script>
+<script src="../shared/inv-db.js?v=35"></script>
 <script src="../shared/ui-dialog.js?v=31"></script>
-<script src="app.js?v=32"></script>
+<script src="app.js?v=34"></script>
 </body>
 </html>

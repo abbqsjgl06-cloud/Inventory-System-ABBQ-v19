@@ -234,6 +234,19 @@ async function deleteReceipt(id){
     toast("✓ Dihapus","success");
 }
 
+async function deleteSelected(){
+    const ids = Array.from(document.querySelectorAll(".row-check:checked")).map(el => el.value);
+    if(ids.length === 0){ toast("Pilih minimal 1 item untuk dihapus","error"); return; }
+    if(!await uiConfirm(`Hapus ${ids.length} item terpilih? Tindakan ini tidak bisa dibatalkan.`)) return;
+
+    for(const id of ids){
+        await InvDB.remove("goodsReceipt", id);
+    }
+    ALL_RECEIPTS = ALL_RECEIPTS.filter(r => !ids.includes(r.id));
+    renderHistory();
+    toast(`✓ ${ids.length} item dihapus`,"success");
+}
+
 function renderHistory(){
     const start = document.getElementById("filterStart").value;
     const end = document.getElementById("filterEnd").value;
@@ -356,6 +369,8 @@ function toggleGroupCheck(masterCheckbox, dateId){
 function updateSelectedCount(){
     const count = document.querySelectorAll(".row-check:checked").length;
     document.getElementById("selectedCount").textContent = count;
+    const delEl = document.getElementById("selectedCountDel");
+    if(delEl) delEl.textContent = count;
 }
 
 function exportSelected(){

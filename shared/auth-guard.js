@@ -47,16 +47,33 @@ document.addEventListener("DOMContentLoaded", function () {
         }
 
         window.CURRENT_USER_EMAIL = user.email;
+
+        // Legacy default (backward compatible): role from hardcoded admin
+        // email, no outlet scoping. This is what everyone gets unless an
+        // account profile has been explicitly set up via "Kelola Akun".
         window.CURRENT_ROLE = (user.email === ADMIN_EMAIL) ? "admin" : "user";
+        window.CURRENT_OUTLET_ID = null;
 
         var hideStyle = document.getElementById("auth-guard-hide");
         if (hideStyle) hideStyle.remove();
 
-        _injectUserBadge(user.email, window.CURRENT_ROLE);
-
-        document.dispatchEvent(new CustomEvent("authReady", {
-            detail: { role: window.CURRENT_ROLE, email: user.email }
-        }));
+        firebase.firestore().collection("accounts").doc(user.email).get()
+            .then(function (doc) {
+                if (doc.exists) {
+                    var acct = doc.data();
+                    if (acct.role === "admin" || acct.role === "user") window.CURRENT_ROLE = acct.role;
+                    window.CURRENT_OUTLET_ID = acct.outletId || null;
+                }
+            })
+            .catch(function () {
+                // No accounts profile / offline / not permitted - keep legacy behavior above.
+            })
+            .then(function () {
+                _injectUserBadge(user.email, window.CURRENT_ROLE);
+                document.dispatchEvent(new CustomEvent("authReady", {
+                    detail: { role: window.CURRENT_ROLE, email: user.email, outletId: window.CURRENT_OUTLET_ID }
+                }));
+            });
     });
 });
 
@@ -97,7 +114,7 @@ function _injectUserBadge(email, role) {
 
     var text = document.createElement("span");
     text.style.cssText = "overflow:hidden;text-overflow:ellipsis;white-space:nowrap;";
-    text.textContent = email + " · " + roleLabel;
+    text.textContent = roleLabel;
 
     badge.appendChild(dot);
     badge.appendChild(text);
