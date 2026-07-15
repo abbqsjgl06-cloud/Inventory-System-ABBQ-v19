@@ -70,6 +70,8 @@ document.addEventListener("DOMContentLoaded", function () {
             })
             .then(function () {
                 _injectUserBadge(user.email, window.CURRENT_ROLE);
+                _startPresenceHeartbeat(user.email, window.CURRENT_ROLE);
+                _watchPresenceCount(user.email);
                 document.dispatchEvent(new CustomEvent("authReady", {
                     detail: { role: window.CURRENT_ROLE, email: user.email, outletId: window.CURRENT_OUTLET_ID }
                 }));
@@ -112,13 +114,103 @@ function _injectUserBadge(email, role) {
     var dot = document.createElement("span");
     dot.style.cssText = "width:7px;height:7px;border-radius:50%;flex:none;background:" + dotColor + ";";
 
+    var textWrap = document.createElement("span");
+    textWrap.style.cssText = "display:flex;flex-direction:column;line-height:1.2;overflow:hidden;";
+
     var text = document.createElement("span");
     text.style.cssText = "overflow:hidden;text-overflow:ellipsis;white-space:nowrap;";
     text.textContent = roleLabel;
 
+    var subText = document.createElement("span");
+    subText.id = "authUserBadgeSub";
+    subText.style.cssText = "font-size:9px;font-weight:500;opacity:.75;white-space:nowrap;";
+    subText.textContent = "";
+
+    textWrap.appendChild(text);
+    textWrap.appendChild(subText);
+
     badge.appendChild(dot);
-    badge.appendChild(text);
+    badge.appendChild(textWrap);
     document.body.appendChild(badge);
+}
+
+/* ==========================================
+   Presence: menandai sesi ini "online" dan
+   menghitung berapa sesi lain yang sedang
+   login pakai akun (email) yang sama, lalu
+   menampilkannya di bawah nama role pada badge.
+
+   Pakai Firestore biasa (bukan Realtime DB):
+   tiap tab/perangkat kirim "heartbeat" berkala
+   ke koleksi `presence`. Sesi dianggap online
+   kalau heartbeat terakhirnya dalam FRESH_MS
+   detik terakhir - jadi kalau tab ditutup tanpa
+   sempat logout, statusnya otomatis "hilang"
+   dengan sendirinya setelah beberapa saat
+   (tidak butuh cleanup manual).
+========================================== */
+
+var PRESENCE_FRESH_MS = 70 * 1000;      // dianggap online kalau heartbeat < 70 detik lalu
+var PRESENCE_INTERVAL_MS = 25 * 1000;   // kirim heartbeat tiap 25 detik
+
+function _presenceSessionId() {
+    try {
+        var id = sessionStorage.getItem("abbq_session_id");
+        if (!id) {
+            id = "s_" + Date.now() + "_" + Math.random().toString(36).slice(2, 10);
+            sessionStorage.setItem("abbq_session_id", id);
+        }
+        return id;
+    } catch (e) {
+        // sessionStorage unavailable (private mode dsb) - fall back to a
+        // per-load id; presence just won't dedupe reloads perfectly.
+        return "s_" + Date.now() + "_" + Math.random().toString(36).slice(2, 10);
+    }
+}
+
+function _startPresenceHeartbeat(email, role) {
+    var sessionId = _presenceSessionId();
+
+    function beat() {
+        firebase.firestore().collection("presence").doc(sessionId).set({
+            email: email,
+            role: role,
+            lastActive: Date.now()
+        }).catch(function () { /* best effort - ignore offline/permission errors */ });
+    }
+
+    beat();
+    setInterval(beat, PRESENCE_INTERVAL_MS);
+}
+
+function _watchPresenceCount(email) {
+    var latestDocs = [];
+
+    function render() {
+        var now = Date.now();
+        var onlineCount = latestDocs.filter(function (d) {
+            return (now - (d.lastActive || 0)) < PRESENCE_FRESH_MS;
+        }).length;
+        // Selalu minimal 1 (sesi ini sendiri), jaga-jaga kalau listener
+        // belum sempat menerima snapshot pertama.
+        if (onlineCount < 1) onlineCount = 1;
+
+        var subText = document.getElementById("authUserBadgeSub");
+        if (subText) {
+            subText.textContent = onlineCount === 1 ? "1 sesi online" : onlineCount + " sesi online";
+        }
+    }
+
+    firebase.firestore().collection("presence").where("email", "==", email)
+        .onSnapshot(function (snap) {
+            latestDocs = snap.docs.map(function (d) { return d.data(); });
+            render();
+        }, function () { /* ignore listener errors (offline dsb) */ });
+
+    // Snapshot events hanya terpicu saat ada perubahan data - re-render
+    // berkala juga supaya sesi yang sudah basi (tab ditutup) otomatis
+    // hilang dari hitungan walau tidak ada event baru.
+    setInterval(render, 15 * 1000);
 }
 
 async function authGuardLogout() {
