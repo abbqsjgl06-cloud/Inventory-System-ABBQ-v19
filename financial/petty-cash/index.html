@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Tracking Petty Cash — Financial ABBQ</title>
+<link rel="icon" href="../../logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../shared/inv-style.css?v=35">
+<style>
+  :root{ --accent:#0D7A5F; --accent-tint:#E2F5EF; }
+  thead th{background:var(--accent-tint);}
+  .pc-summary{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:4px;}
+  .pc-summary-card{flex:1;min-width:100px;background:#F5F1E8;border-radius:12px;padding:12px 14px;}
+  .pc-summary-card .label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.03em;margin-bottom:4px;}
+  .pc-summary-card .value{font-size:17px;font-weight:800;}
+  .pc-summary-card.saldo-akhir{background:#FBEBC7;}
+  .pc-summary-card.usage{background:#FCEBE9;}
+  .photo-thumb{width:36px;height:36px;object-fit:cover;border-radius:6px;cursor:pointer;}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <a class="back-btn" href="../index.html">←</a>
+  <div class="topbar-title">
+    <div class="topbar-eyebrow">Financial</div>
+    <div class="topbar-h1">Tracking Petty Cash</div>
+  </div>
+</header>
+
+<main>
+
+  <div class="panel">
+    <div class="panel-title">💰 Summary</div>
+    <div class="pc-summary">
+      <div class="pc-summary-card">
+        <div class="label">Saldo Awal</div>
+        <div class="value" id="sumSaldoAwal">Rp 0</div>
+      </div>
+      <div class="pc-summary-card usage">
+        <div class="label">Total Penggunaan</div>
+        <div class="value" id="sumUsage">Rp 0</div>
+      </div>
+      <div class="pc-summary-card saldo-akhir">
+        <div class="label">Saldo Akhir</div>
+        <div class="value" id="sumSaldoAkhir">Rp 0</div>
+      </div>
+    </div>
+    <div id="adminSaldoBox" style="display:none;margin-top:12px;">
+      <div class="field-row">
+        <div class="field">
+          <label>Ubah Saldo Awal (Admin)</label>
+          <input type="number" id="editSaldoAwal" placeholder="1000000">
+        </div>
+      </div>
+      <button class="btn btn-secondary" onclick="saveSaldoAwal()">Simpan Saldo Awal</button>
+      <p style="font-size:11px;color:var(--muted);margin-top:6px;">Gunakan ini saat top-up / reset saldo petty cash (mis. awal periode baru).</p>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-title">➕ Input Penggunaan Petty Cash</div>
+    <div class="field">
+      <label>Tanggal</label>
+      <input type="date" id="pcDate">
+    </div>
+    <div class="field">
+      <label>Kategori</label>
+      <input type="text" id="pcCategory" placeholder="cth: ATK, Transport, Konsumsi">
+    </div>
+    <div class="field">
+      <label>Deskripsi</label>
+      <input type="text" id="pcDescription" placeholder="cth: Beli spidol & kertas">
+    </div>
+    <div class="field">
+      <label>Amount</label>
+      <input type="number" id="pcAmount" placeholder="0">
+    </div>
+    <div class="field">
+      <label>Foto Barang/Struk (opsional)</label>
+      <input id="pcPhotoInput" type="file" accept="image/*" capture="environment" style="display:none;">
+      <input id="pcPhotoInputGallery" type="file" accept="image/*" style="display:none;">
+      <div style="display:flex;gap:8px;">
+        <button type="button" id="pcTakePhotoBtn" class="btn btn-secondary" style="flex:1;">📷 Ambil Foto</button>
+        <button type="button" id="pcPickGalleryBtn" class="btn btn-secondary" style="flex:1;">🖼️ Dari Galeri</button>
+      </div>
+      <img id="pcPhotoPreview" style="display:none;max-width:160px;border-radius:10px;margin-top:8px;">
+      <button type="button" id="pcRemovePhotoBtn" class="btn btn-ghost" style="margin-top:6px;">Hapus Foto</button>
+    </div>
+    <input type="hidden" id="pcEditId">
+    <button class="btn btn-primary" id="pcSaveBtn" onclick="saveUsage()">💾 Simpan Penggunaan</button>
+    <button class="btn btn-ghost" id="pcCancelEditBtn" style="display:none;" onclick="cancelEdit()">Batal Edit</button>
+  </div>
+
+  <div class="panel">
+    <div class="panel-title">Riwayat Penggunaan</div>
+    <div class="field-row">
+      <div class="field">
+        <label>Dari Tanggal</label>
+        <input type="date" id="histFrom">
+      </div>
+      <div class="field">
+        <label>Sampai Tanggal</label>
+        <input type="date" id="histTo">
+      </div>
+    </div>
+    <button class="btn btn-secondary" onclick="loadHistory()">🔍 Tampilkan Riwayat</button>
+    <div style="font-size:13px;font-weight:700;margin-top:10px;" id="histTotalLine"></div>
+    <div class="table-wrap" style="margin-top:10px;">
+      <table>
+        <thead><tr><th>Tanggal</th><th>Kategori</th><th>Deskripsi</th><th class="num">Amount</th><th></th><th></th></tr></thead>
+        <tbody id="histBody"></tbody>
+      </table>
+    </div>
+    <button class="btn btn-secondary" style="margin-top:12px;" onclick="exportExcel()">⬇ Export ke Excel</button>
+  </div>
+
+</main>
+
+<div class="notif" id="notif"></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script>
+<script src="../../shared/firebase-config.js"></script>
+<script>window.AUTH_GUARD_DEPTH = 2;</script>
+<script src="../../shared/auth-guard.js?v=35"></script>
+<script src="../../shared/inv-db.js?v=35"></script>
+<script src="../../shared/ui-dialog.js?v=35"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
+<script src="app.js?v=1"></script>
+</body>
+</html>

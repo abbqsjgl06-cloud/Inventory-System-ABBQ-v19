@@ -52,7 +52,7 @@ const InvDB = (() => {
     const OUTLET_SCOPED = new Set([
         "goodsReceipt", "transfer", "usageImports", "usageDetail",
         "stockOpname", "wasteRecords", "eodSnapshots", "brokenChickenRecords",
-        "cashHandover", "remittanceOfFund"
+        "cashHandover", "remittanceOfFund", "pettyCashUsage"
     ]);
 
     function currentOutletId() {
