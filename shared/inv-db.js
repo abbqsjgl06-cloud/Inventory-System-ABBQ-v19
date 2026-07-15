@@ -51,7 +51,8 @@ const InvDB = (() => {
     // accounts) behaves exactly as before - nothing changes automatically.
     const OUTLET_SCOPED = new Set([
         "goodsReceipt", "transfer", "usageImports", "usageDetail",
-        "stockOpname", "wasteRecords", "eodSnapshots", "brokenChickenRecords"
+        "stockOpname", "wasteRecords", "eodSnapshots", "brokenChickenRecords",
+        "cashHandover", "remittanceOfFund"
     ]);
 
     function currentOutletId() {
