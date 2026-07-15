@@ -6,6 +6,29 @@
 
 "use strict";
 
+/* ==========================================
+   VIEW SWITCHING (landing / waste / broken)
+========================================== */
+
+function showView(view) {
+    const landing = document.getElementById("landingView");
+    const waste = document.getElementById("wasteView");
+    const broken = document.getElementById("brokenView");
+    const title = document.getElementById("pageTitle");
+
+    landing.style.display = view === "landing" ? "block" : "none";
+    waste.style.display = view === "waste" ? "block" : "none";
+    broken.style.display = view === "broken" ? "block" : "none";
+
+    if (title) {
+        title.textContent = view === "broken" ? "Tracking Ayam Broken"
+            : view === "waste" ? "Input Waste"
+            : "Waste Tracker";
+    }
+
+    window.scrollTo({ top: 0, behavior: "instant" in window ? "instant" : "auto" });
+}
+
 document.addEventListener("DOMContentLoaded", async () => {
 
     try {
@@ -34,6 +57,8 @@ document.addEventListener("DOMContentLoaded", async () => {
         Input.init();
 
         History.init();
+
+        BrokenChicken.init();
 
         await Dashboard.init();
 

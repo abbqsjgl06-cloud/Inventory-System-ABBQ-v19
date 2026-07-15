@@ -95,10 +95,9 @@
   <div class="panel">
     <div class="panel-title">👤 Kelola Akun (Role &amp; Outlet)</div>
     <div class="warn-box">
-      ⚠ <b>Penting:</b> menambahkan email di sini <u>tidak</u> membuat login-nya bisa dipakai.
-      Kredensial (email + password) harus dibuat lebih dulu lewat
-      <b>Firebase Console → Authentication → Add user</b>.
-      Setelah itu, baru daftarkan email yang sama di sini untuk mengatur role &amp; outlet-nya.
+      ℹ️ Gunakan bagian ini untuk mengubah role/outlet akun yang <b>sudah</b> punya login.
+      Untuk membuat login baru, pakai panel <b>"➕ Buat Akun Baru"</b> di bawah (kalau Cloud Functions sudah di-deploy),
+      atau lewat Firebase Console kalau belum.
     </div>
     <div class="field-row">
       <div class="field">
@@ -126,15 +125,63 @@
     </div>
   </div>
 
+  <div class="panel">
+    <div class="panel-title">➕ Buat Akun Baru</div>
+    <div id="cfStatusCreate" class="info-box" style="display:none;"></div>
+    <div class="field-row">
+      <div class="field">
+        <label>Email Login Baru</label>
+        <input type="text" id="newAcctEmail" placeholder="cth: bandung01@abbq-system.local">
+      </div>
+      <div class="field">
+        <label>Password Awal (min. 6 karakter)</label>
+        <input type="password" id="newAcctPassword" autocomplete="off">
+      </div>
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label>Role</label>
+        <select id="newAcctRole" onchange="toggleNewAcctOutlet()">
+          <option value="user">User (outlet)</option>
+          <option value="admin">Admin (super admin)</option>
+        </select>
+      </div>
+      <div class="field" id="newAcctOutletWrap">
+        <label>Outlet</label>
+        <select id="newAcctOutlet"><option value="">— Belum ada outlet —</option></select>
+      </div>
+    </div>
+    <button class="btn btn-primary" onclick="createOutletAccount()">Buat Akun</button>
+    <div id="createResult" style="font-size:13px;margin-top:8px;"></div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-title">🔁 Reset Password Akun Lain</div>
+    <div id="cfStatusReset" class="info-box" style="display:none;"></div>
+    <div class="field-row">
+      <div class="field">
+        <label>Email Akun</label>
+        <input type="text" id="resetAcctEmail" list="resetAcctEmailList" placeholder="ketik atau pilih email akun">
+        <datalist id="resetAcctEmailList"></datalist>
+      </div>
+      <div class="field">
+        <label>Password Baru (min. 6 karakter)</label>
+        <input type="password" id="resetAcctPassword" autocomplete="off">
+      </div>
+    </div>
+    <button class="btn btn-secondary" onclick="resetAccountPassword()">Reset Password</button>
+    <div id="resetResult" style="font-size:13px;margin-top:8px;"></div>
+  </div>
+
   <div class="panel" style="border:2px dashed var(--accent);">
-    <div class="panel-title">📋 Cara Reset Password Akun Lain</div>
+    <div class="panel-title">📋 Kalau Tombol di Atas Belum Berfungsi</div>
     <p style="font-size:12px;color:var(--muted);line-height:1.7;">
-      Karena alasan keamanan Firebase, admin tidak bisa mengubah password akun lain langsung dari halaman ini.
-      Caranya lewat <b>Firebase Console</b>:<br>
+      Dua fitur di atas butuh Cloud Functions yang sudah di-deploy (lihat komentar setup di <code>functions/index.js</code>).
+      Sebelum itu selesai, tetap bisa pakai cara manual lewat <b>Firebase Console</b>:<br>
       1. Buka Firebase Console → project <b>abbq-system</b> → Authentication → tab Users.<br>
       2. Cari email akun yang mau direset, klik titik tiga (⋮) → <b>Delete user</b>.<br>
       3. Klik <b>Add user</b> → isi email yang sama + password baru.<br>
-      4. Selesai — role &amp; outlet akun itu di tabel atas tidak berubah (tetap nempel ke email yang sama).
+      4. Selesai — role &amp; outlet akun itu di tabel bawah tidak berubah (tetap nempel ke email yang sama).
     </p>
   </div>
 
@@ -147,6 +194,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-functions-compat.js"></script>
 <script src="../shared/firebase-config.js"></script>
 <script>window.AUTH_GUARD_DEPTH = 1;</script>
 <script src="../shared/auth-guard.js?v=35"></script>

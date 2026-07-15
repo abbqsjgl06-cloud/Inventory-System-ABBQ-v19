@@ -8,6 +8,7 @@ let IS_ADMIN = false;
 let EDITING_ID = null;
 
 function editReceipt(id){
+    if(!IS_ADMIN){ toast("Hanya Admin yang boleh mengedit","error"); return; }
     EDITING_ID = id;
     renderHistory();
 }
@@ -44,6 +45,8 @@ document.addEventListener("authReady", (e) => {
     IS_ADMIN = e.detail.role === "admin";
     const box = document.getElementById("adminImportBox");
     if(box) box.style.display = IS_ADMIN ? "block" : "none";
+    const delBtn = document.getElementById("deleteSelectedBtn");
+    if(delBtn) delBtn.style.display = IS_ADMIN ? "" : "none";
 });
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -227,6 +230,7 @@ async function saveAllStaging(){
 }
 
 async function deleteReceipt(id){
+    if(!IS_ADMIN){ toast("Hanya Admin yang boleh menghapus","error"); return; }
     if(!await uiConfirm("Hapus entri ini?")) return;
     await InvDB.remove("goodsReceipt", id);
     ALL_RECEIPTS = ALL_RECEIPTS.filter(r=>r.id!==id);
@@ -235,6 +239,7 @@ async function deleteReceipt(id){
 }
 
 async function deleteSelected(){
+    if(!IS_ADMIN){ toast("Hanya Admin yang boleh menghapus","error"); return; }
     const ids = Array.from(document.querySelectorAll(".row-check:checked")).map(el => el.value);
     if(ids.length === 0){ toast("Pilih minimal 1 item untuk dihapus","error"); return; }
     if(!await uiConfirm(`Hapus ${ids.length} item terpilih? Tindakan ini tidak bisa dibatalkan.`)) return;
@@ -324,7 +329,7 @@ function renderHistory(){
                                             <td>${r.note || "-"}</td>
                                             <td style="white-space:nowrap;">
                                                 ${IS_ADMIN ? `<button class="btn btn-ghost" style="padding:6px 10px;font-size:12px;width:auto;" onclick="editReceipt('${r.id}')">Edit</button>` : ""}
-                                                <button class="btn btn-ghost" style="padding:6px 10px;font-size:12px;width:auto;" onclick="deleteReceipt('${r.id}')">Hapus</button>
+                                                ${IS_ADMIN ? `<button class="btn btn-ghost" style="padding:6px 10px;font-size:12px;width:auto;" onclick="deleteReceipt('${r.id}')">Hapus</button>` : ""}
                                             </td>
                                         </tr>
                                     `).join("")}

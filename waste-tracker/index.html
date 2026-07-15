@@ -15,11 +15,34 @@
 
 <header class="topbar">
   <img src="logo.png" class="logo" alt="ABBQ Logo">
-  <h1>Waste Tracker</h1>
+  <h1 id="pageTitle">Waste Tracker</h1>
   <a href="../index.html" style="position:fixed;top:14px;left:14px;z-index:999;background:rgba(0,0,0,.35);color:#fff;text-decoration:none;font-size:13px;font-weight:600;padding:7px 12px;border-radius:20px;backdrop-filter:blur(4px);">← Menu</a>
 </header>
 
 <main>
+
+<!-- ============ LANDING: PILIH MENU ============ -->
+<section id="landingView">
+  <div class="formGroup" style="text-align:center;margin-bottom:6px;">
+    <h2 style="margin-bottom:4px;">Pilih Menu</h2>
+    <p style="color:#777;font-size:13px;">Mau catat apa hari ini?</p>
+  </div>
+
+  <div class="card" style="cursor:pointer;margin-bottom:14px;padding:20px;" onclick="showView('waste')">
+    <h3 style="margin:0 0 6px;">🗑️ Input Waste</h3>
+    <span style="font-size:13px;color:#777;">Catat waste harian, foto bukti, dan riwayat.</span>
+  </div>
+
+  <div class="card" style="cursor:pointer;padding:20px;" onclick="showView('broken')">
+    <h3 style="margin:0 0 6px;">🍗 Tracking Ayam Broken</h3>
+    <span style="font-size:13px;color:#777;">Catat ayam broken per batch, lengkap dengan foto.</span>
+  </div>
+</section>
+
+<!-- ============ VIEW: INPUT WASTE (konten lama) ============ -->
+<div id="wasteView" style="display:none;">
+
+<button type="button" class="secondary" style="margin-bottom:14px;" onclick="showView('landing')">← Pilih Menu</button>
 
 <section class="dashboard">
   <div class="card"><h2 id="totalEntry">0</h2><span>Total Entry</span></div>
@@ -131,6 +154,83 @@
 </div>
 </section>
 
+</div>
+
+<!-- ============ VIEW: TRACKING AYAM BROKEN ============ -->
+<div id="brokenView" style="display:none;">
+
+<button type="button" class="secondary" style="margin-bottom:14px;" onclick="showView('landing')">← Pilih Menu</button>
+
+<section class="inputForm" id="bcInputForm">
+<h2>🍗 Tracking Ayam Broken</h2>
+
+<input type="hidden" id="bcTrackNo">
+
+<div class="formGroup">
+<label>Tanggal</label>
+<input type="date" id="bcDate">
+</div>
+
+<div class="formGroup">
+<label>PIC</label>
+<input id="bcPic" placeholder="Nama PIC">
+</div>
+
+<div class="formGroup">
+<label>Cari Item</label>
+<input type="text" id="bcSearchItem" autocomplete="off" placeholder="Ketik kode atau nama item">
+<div id="bcSearchResult" class="searchResult"></div>
+</div>
+
+<input type="hidden" id="bcItemCode">
+<input type="hidden" id="bcItemName">
+
+<div class="formGroup">
+<label>UOM</label>
+<input id="bcUom" readonly>
+</div>
+
+<div class="formGroup">
+<label>Qty</label>
+<input id="bcQty" type="number" min="0">
+</div>
+
+<div class="formGroup">
+<label>Reason</label>
+<textarea id="bcReason"></textarea>
+</div>
+
+<div class="formGroup">
+<label>Kode Batch</label>
+<input id="bcBatch" placeholder="Nomor batch">
+</div>
+
+<div class="formGroup">
+<label>Foto (opsional)</label>
+<input id="bcPhotoInput" type="file" accept="image/*" capture="environment" style="display:none;">
+<input id="bcPhotoInputGallery" type="file" accept="image/*" style="display:none;">
+<div style="display:flex;gap:8px;">
+  <button type="button" id="bcTakePhotoBtn" class="secondary" style="flex:1;">📷 Ambil Foto</button>
+  <button type="button" id="bcPickGalleryBtn" class="secondary" style="flex:1;">🖼️ Dari Galeri</button>
+</div>
+<img id="bcPhotoPreview" class="photoPreview" alt="">
+<button type="button" id="bcRemovePhotoBtn" class="secondary">Hapus Foto</button>
+</div>
+
+<button id="bcSaveBtn" class="primary">Simpan Tracking</button>
+</section>
+
+<section class="history">
+<h2>History</h2>
+<div class="filter">
+<input type="date" id="bcFromDate">
+<input type="date" id="bcToDate">
+<button id="bcHistoryBtn" class="primary">Lihat History</button>
+</div>
+</section>
+
+</div>
+
 </main>
 
 <footer class="footer">
@@ -157,6 +257,7 @@ FDL © 2026
 <script src="camera.js"></script>
 <script src="input.js"></script>
 <script src="history.js"></script>
+<script src="brokenChicken.js"></script>
 <script src="dashboard.js"></script>
 <script src="export.js"></script>
 <script src="app.js"></script>

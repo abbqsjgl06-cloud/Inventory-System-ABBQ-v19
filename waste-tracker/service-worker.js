@@ -1,4 +1,4 @@
-const CACHE_NAME = "abbq-waste-v5";
+const CACHE_NAME = "abbq-waste-v6";
 
 const FILES = [
     "./",
@@ -13,6 +13,7 @@ const FILES = [
     "./camera.js",
     "./input.js",
     "./history.js",
+    "./brokenChicken.js",
     "./dashboard.js",
     "./export.js",
     "./app.js",

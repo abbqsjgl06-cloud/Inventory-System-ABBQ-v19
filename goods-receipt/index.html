@@ -129,7 +129,7 @@
 
   <div class="btn-row" style="margin-bottom:12px;">
     <button class="btn btn-secondary" onclick="exportSelected()">⬇ Export Item Terpilih (<span id="selectedCount">0</span>)</button>
-    <button class="btn btn-ghost" style="color:#C23B2E;border-color:#C23B2E;" onclick="deleteSelected()">🗑 Hapus Terpilih (<span id="selectedCountDel">0</span>)</button>
+    <button class="btn btn-ghost" id="deleteSelectedBtn" style="color:#C23B2E;border-color:#C23B2E;display:none;" onclick="deleteSelected()">🗑 Hapus Terpilih (<span id="selectedCountDel">0</span>)</button>
   </div>
 
   <div id="historyGroups"></div>

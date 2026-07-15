@@ -52,6 +52,35 @@ const DB = (() => {
     }
 
     /* ======================================
+       BROKEN CHICKEN TRACKING
+    ====================================== */
+
+    async function saveBrokenChicken(data) {
+        return InvDB.put("brokenChickenRecords", data);
+    }
+
+    async function updateBrokenChicken(data) {
+        return InvDB.put("brokenChickenRecords", data);
+    }
+
+    async function deleteBrokenChicken(id) {
+        return InvDB.remove("brokenChickenRecords", id);
+    }
+
+    async function getBrokenChicken() {
+        return InvDB.getAll("brokenChickenRecords");
+    }
+
+    async function getBrokenChickenById(id) {
+        return InvDB.get("brokenChickenRecords", id);
+    }
+
+    async function getBrokenChickenByDate(from, to) {
+        const all = await getBrokenChicken();
+        return all.filter(item => item.date >= from && item.date <= to);
+    }
+
+    /* ======================================
        MASTER ITEMS
        Now reads from the SAME shared "materials" collection
        used by Master Data / Barang Masuk / Transfer, so item
@@ -118,6 +147,12 @@ const DB = (() => {
         getWaste,
         getWasteById,
         getWasteByDate,
+        saveBrokenChicken,
+        updateBrokenChicken,
+        deleteBrokenChicken,
+        getBrokenChicken,
+        getBrokenChickenById,
+        getBrokenChickenByDate,
         saveMaster,
         getMaster,
         searchMaster,

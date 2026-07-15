@@ -19,6 +19,104 @@ document.addEventListener("authReady", (e) => {
 
 async function init() {
     await Promise.all([loadOutlets(), loadAccounts()]);
+    checkCloudFunctionsAvailable();
+}
+
+/* ==========================================
+   CLOUD FUNCTIONS (opsional - baru aktif setelah di-deploy)
+========================================== */
+
+let CF_AVAILABLE = null; // null = belum dicek, true/false setelah dicek
+
+function getFns() {
+    return firebase.app().functions("us-central1");
+}
+
+async function checkCloudFunctionsAvailable() {
+    // Tidak ada cara "ping" murni tanpa efek samping, jadi kita anggap
+    // tersedia secara optimis dan baru turunkan status kalau pemanggilan
+    // nyata gagal dengan error "not-found"/"internal" (khas fungsi belum
+    // di-deploy). Ini menjaga tombol tetap bisa dicoba tanpa menunggu.
+    CF_AVAILABLE = true;
+}
+
+function showCfStatus(elId, msg, isError) {
+    const el = document.getElementById(elId);
+    el.style.display = "block";
+    el.style.background = isError ? "#FCEBE9" : "#EAF3FF";
+    el.style.borderColor = isError ? "#F3C5BE" : "#BFDBFE";
+    el.style.color = isError ? "#8C2A1E" : "#1C3D6B";
+    el.textContent = msg;
+}
+
+function toggleNewAcctOutlet() {
+    const isAdmin = document.getElementById("newAcctRole").value === "admin";
+    document.getElementById("newAcctOutletWrap").style.display = isAdmin ? "none" : "";
+}
+
+async function createOutletAccount() {
+    const email = document.getElementById("newAcctEmail").value.trim().toLowerCase();
+    const password = document.getElementById("newAcctPassword").value;
+    const role = document.getElementById("newAcctRole").value;
+    const outletId = role === "admin" ? "" : document.getElementById("newAcctOutlet").value;
+    const resultEl = document.getElementById("createResult");
+    resultEl.innerHTML = "";
+
+    if (!email || !email.includes("@")) { resultEl.innerHTML = `<span style="color:#c0392b;">Isi email yang valid.</span>`; return; }
+    if (password.length < 6) { resultEl.innerHTML = `<span style="color:#c0392b;">Password minimal 6 karakter.</span>`; return; }
+    if (role === "user" && !outletId) { resultEl.innerHTML = `<span style="color:#c0392b;">Pilih outlet untuk akun bertipe User.</span>`; return; }
+
+    try {
+        const fn = getFns().httpsCallable("createOutletAccount");
+        await fn({ email, password, role, outletId });
+
+        // Mirror ke Firestore juga supaya langsung tampil di tabel & dropdown
+        await InvDB.put("accounts", { email, role, outletId: outletId || "", updatedAt: new Date().toISOString() });
+
+        resultEl.innerHTML = `<span style="color:#1E7E34;">✓ Akun ${email} berhasil dibuat & siap dipakai login.</span>`;
+        document.getElementById("newAcctEmail").value = "";
+        document.getElementById("newAcctPassword").value = "";
+        await loadAccounts();
+        toast("✓ Akun baru dibuat", "success");
+    } catch (err) {
+        console.error(err);
+        handleCfError(err, resultEl, "cfStatusCreate");
+    }
+}
+
+async function resetAccountPassword() {
+    const email = document.getElementById("resetAcctEmail").value;
+    const newPassword = document.getElementById("resetAcctPassword").value;
+    const resultEl = document.getElementById("resetResult");
+    resultEl.innerHTML = "";
+
+    if (!email) { resultEl.innerHTML = `<span style="color:#c0392b;">Pilih akun dulu.</span>`; return; }
+    if (newPassword.length < 6) { resultEl.innerHTML = `<span style="color:#c0392b;">Password baru minimal 6 karakter.</span>`; return; }
+
+    if (!await uiConfirm(`Reset password untuk ${email}?`)) return;
+
+    try {
+        const fn = getFns().httpsCallable("resetAccountPassword");
+        await fn({ email, newPassword });
+
+        resultEl.innerHTML = `<span style="color:#1E7E34;">✓ Password ${email} berhasil direset.</span>`;
+        document.getElementById("resetAcctPassword").value = "";
+        toast("✓ Password direset", "success");
+    } catch (err) {
+        console.error(err);
+        handleCfError(err, resultEl, "cfStatusReset");
+    }
+}
+
+function handleCfError(err, resultEl, statusElId) {
+    // Fungsi belum di-deploy sama sekali - "not-found"/"internal" khas ini,
+    // atau error jaringan langsung dari SDK Functions.
+    if (err.code === "functions/not-found" || err.code === "not-found" && !err.message.includes("Login")) {
+        showCfStatus(statusElId, "⚠ Cloud Functions belum terdeteksi/di-deploy. Pakai cara manual lewat Firebase Console di bawah untuk sementara.", true);
+        resultEl.innerHTML = "";
+        return;
+    }
+    resultEl.innerHTML = `<span style="color:#c0392b;">${err.message || "Gagal memproses permintaan."}</span>`;
 }
 
 /* ==========================================
@@ -120,15 +218,16 @@ async function deleteOutlet(id) {
 }
 
 function populateOutletSelect() {
-    const sel = document.getElementById("acctOutlet");
-    const current = sel.value;
-    if (OUTLETS.length === 0) {
-        sel.innerHTML = `<option value="">— Belum ada outlet —</option>`;
-        return;
-    }
-    sel.innerHTML = `<option value="">— (khusus role Admin) —</option>` +
-        OUTLETS.map(o => `<option value="${o.id}">${o.name}</option>`).join("");
-    sel.value = current;
+    const options = OUTLETS.length === 0
+        ? `<option value="">— Belum ada outlet —</option>`
+        : `<option value="">— (khusus role Admin) —</option>` + OUTLETS.map(o => `<option value="${o.id}">${o.name}</option>`).join("");
+
+    ["acctOutlet", "newAcctOutlet"].forEach(id => {
+        const sel = document.getElementById(id);
+        const current = sel.value;
+        sel.innerHTML = options;
+        sel.value = current;
+    });
 }
 
 /* ==========================================
@@ -139,6 +238,15 @@ async function loadAccounts() {
     ACCOUNTS = await InvDB.getAll("accounts");
     ACCOUNTS.sort((a, b) => a.email.localeCompare(b.email));
     renderAccounts();
+    populateResetAccountSelect();
+}
+
+function populateResetAccountSelect() {
+    const list = document.getElementById("resetAcctEmailList");
+    const known = new Set(ACCOUNTS.map(a => a.email));
+    known.add("admin@abbq-system.local");
+    known.add("user@abbq-system.local");
+    list.innerHTML = Array.from(known).map(email => `<option value="${email}"></option>`).join("");
 }
 
 function renderAccounts() {
@@ -179,7 +287,19 @@ async function addAccount() {
 
     document.getElementById("acctEmail").value = "";
     await loadAccounts();
-    toast("✓ Akun disimpan. Pastikan login (email+password)-nya sudah dibuat di Firebase Console.", "success");
+
+    // Best-effort: also lock this in server-side via custom claims, so
+    // Firestore rules actually enforce it (not just the app's UI). If
+    // Cloud Functions isn't deployed yet, this silently no-ops - the
+    // client-side scoping from Fase 2 still works either way.
+    try {
+        const fn = getFns().httpsCallable("setAccountClaims");
+        await fn({ email, role, outletId });
+        toast("✓ Akun disimpan & dikunci di server (custom claims aktif)", "success");
+    } catch (err) {
+        console.warn("setAccountClaims belum aktif (Cloud Functions belum di-deploy?):", err.message);
+        toast("✓ Akun disimpan. Pastikan login-nya sudah dibuat (Firebase Console / Buat Akun Baru).", "success");
+    }
 }
 
 async function deleteAccount(email) {

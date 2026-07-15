@@ -51,7 +51,7 @@ const InvDB = (() => {
     // accounts) behaves exactly as before - nothing changes automatically.
     const OUTLET_SCOPED = new Set([
         "goodsReceipt", "transfer", "usageImports", "usageDetail",
-        "stockOpname", "wasteRecords", "eodSnapshots"
+        "stockOpname", "wasteRecords", "eodSnapshots", "brokenChickenRecords"
     ]);
 
     function currentOutletId() {
@@ -223,24 +223,37 @@ const InvDB = (() => {
 
     /* ======================================
        BUSINESS DATE & END OF DAY
-       Now centralized - every outlet/device sees the same
-       business date and EOD history.
+       Per-outlet once an account has an assigned outlet (via "Kelola
+       Akun") - each outlet tracks its own business date and closes its
+       own day independently. Admin / unassigned accounts keep using the
+       original global key exactly as before (backward compatible).
     ====================================== */
 
     function todayStr() {
         return new Date().toISOString().slice(0, 10);
     }
 
+    function _businessDateKey() {
+        const outletId = currentOutletId();
+        return outletId ? `businessDate::${outletId}` : "businessDate";
+    }
+
+    function _eodDocId(dateStr) {
+        const outletId = currentOutletId();
+        return outletId ? `${outletId}_${dateStr}` : dateStr;
+    }
+
     async function getBusinessDate() {
-        const val = await getSetting("businessDate", null);
+        const key = _businessDateKey();
+        const val = await getSetting(key, null);
         if (val) return val;
         const t = todayStr();
-        await setSetting("businessDate", t);
+        await setSetting(key, t);
         return t;
     }
 
     async function setBusinessDate(dateStr) {
-        return setSetting("businessDate", dateStr);
+        return setSetting(_businessDateKey(), dateStr);
     }
 
     async function getLatestEodSnapshot() {
@@ -250,12 +263,12 @@ const InvDB = (() => {
     }
 
     async function getEodSnapshot(dateStr) {
-        return get("eodSnapshots", dateStr);
+        return get("eodSnapshots", _eodDocId(dateStr));
     }
 
     async function closeBusinessDay(dateStr, endingByCode, note, sessionIds) {
         const snapshot = {
-            id: dateStr,
+            id: _eodDocId(dateStr),
             date: dateStr,
             closedAt: new Date().toISOString(),
             endingByCode: endingByCode || {},
@@ -280,7 +293,7 @@ const InvDB = (() => {
     }
 
     async function reopenBusinessDay(dateStr) {
-        await remove("eodSnapshots", dateStr);
+        await remove("eodSnapshots", _eodDocId(dateStr));
         await setBusinessDate(dateStr);
     }
 
