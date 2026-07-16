@@ -222,8 +222,9 @@ function populateOutletSelect() {
         ? `<option value="">— Belum ada outlet —</option>`
         : `<option value="">— (khusus role Admin) —</option>` + OUTLETS.map(o => `<option value="${o.id}">${o.name}</option>`).join("");
 
-    ["acctOutlet", "newAcctOutlet"].forEach(id => {
+    ["acctOutlet", "newAcctOutlet", "migrateOutletSelect"].forEach(id => {
         const sel = document.getElementById(id);
+        if(!sel) return;
         const current = sel.value;
         sel.innerHTML = options;
         sel.value = current;
@@ -315,4 +316,62 @@ function toast(msg, type = "success") {
     el.innerHTML = msg;
     el.style.display = "block";
     setTimeout(() => { el.style.display = "none"; }, 2500);
+}
+
+/* ==========================================
+   MIGRASI DATA LAMA (tanpa outletId) KE 1 OUTLET
+   Dipakai sekali saja setelah pindah ke sistem
+   multi-outlet, supaya riwayat lama (dibuat
+   sebelum outlet ada) tidak "hilang" dari akun
+   yang sekarang sudah di-set ke outlet tertentu.
+========================================== */
+
+const MIGRATE_COLLECTIONS = [
+    "goodsReceipt", "transfer", "usageImports", "usageDetail",
+    "stockOpname", "wasteRecords", "eodSnapshots"
+];
+
+async function migrateLegacyDataToOutlet() {
+    const outletId = document.getElementById("migrateOutletSelect").value;
+    const resultEl = document.getElementById("migrateResult");
+
+    if (!outletId) {
+        toast("Pilih outlet tujuan dulu", "error");
+        return;
+    }
+
+    if (window.CURRENT_OUTLET_ID) {
+        toast('Set dulu outlet switcher (pojok kiri atas) ke "🏬 Semua Outlet" sebelum migrasi, supaya data lama ikut terbaca.', "error");
+        return;
+    }
+
+    const outlet = OUTLETS.find(o => o.id === outletId);
+    const outletName = outlet ? outlet.name : outletId;
+
+    if (!await uiConfirm(`Tandai SEMUA data lama yang belum punya outlet sebagai milik "${outletName}"?\n\nIni hanya memengaruhi data yang BELUM punya outlet sama sekali - data yang sudah tertandai outlet lain tidak akan diubah. Aksi ini tidak bisa di-undo otomatis.`)) return;
+
+    resultEl.textContent = "Memproses, mohon tunggu...";
+    let totalTagged = 0;
+    const perCollection = [];
+
+    for (const col of MIGRATE_COLLECTIONS) {
+        try {
+            const all = await InvDB.getAll(col);
+            const untagged = all.filter(d => !d.outletId);
+
+            for (const doc of untagged) {
+                doc.outletId = outletId;
+                await InvDB.put(col, doc);
+            }
+
+            totalTagged += untagged.length;
+            perCollection.push(`${col}: ${untagged.length} baris`);
+        } catch (err) {
+            console.error(`Gagal migrasi koleksi ${col}:`, err);
+            perCollection.push(`${col}: GAGAL (${err.message || err})`);
+        }
+    }
+
+    resultEl.textContent = `✓ Selesai. Total ${totalTagged} baris ditandai ke "${outletName}":\n` + perCollection.join("\n");
+    toast(`✓ Migrasi selesai (${totalTagged} baris)`, "success");
 }

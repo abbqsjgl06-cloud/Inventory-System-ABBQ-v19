@@ -5,6 +5,13 @@ let SELECTED_ITEM = null;
 let ALL_TRANSFERS = [];
 let CURRENT_TYPE = "IN";
 let MATERIALS_LOADED = false;
+let IS_ADMIN = false;
+let EDITING_ID = null;
+
+document.addEventListener("authReady", (e) => {
+    IS_ADMIN = e.detail.role === "admin";
+    renderHistory();
+});
 
 document.addEventListener("DOMContentLoaded", () => {
     document.getElementById("trDate").value = today();
@@ -192,7 +199,44 @@ async function saveAllStaging(){
     toast(`✓ ${count} item berhasil disimpan ke riwayat`,"success");
 }
 
+function editTransfer(id){
+    if(!IS_ADMIN){ toast("Hanya admin yang bisa mengedit data","error"); return; }
+    EDITING_ID = id;
+    renderHistory();
+}
+
+function cancelTransferEdit(){
+    EDITING_ID = null;
+    renderHistory();
+}
+
+async function saveTransferEdit(id){
+    const transfer = ALL_TRANSFERS.find(r => r.id === id);
+    if(!transfer) return;
+
+    const qtyInput = document.getElementById(`editQty_${id}`);
+    const outletInput = document.getElementById(`editOutlet_${id}`);
+    const noteInput = document.getElementById(`editNote_${id}`);
+    const newQty = Number(qtyInput.value);
+    if(!newQty || newQty <= 0){ toast("Qty harus lebih dari 0","error"); return; }
+
+    transfer.qty = newQty;
+    transfer.outlet = outletInput.value.trim();
+    transfer.note = noteInput.value.trim();
+
+    try {
+        await InvDB.put("transfer", transfer);
+        EDITING_ID = null;
+        renderHistory();
+        toast("✓ Perubahan disimpan","success");
+    } catch(err){
+        console.error("Gagal update:", err);
+        toast("Gagal simpan. Cek koneksi internet.","error");
+    }
+}
+
 async function deleteTransfer(id){
+    if(!IS_ADMIN){ toast("Hanya admin yang bisa menghapus data","error"); return; }
     if(!await uiConfirm("Hapus entri ini?")) return;
     await InvDB.remove("transfer", id);
     ALL_TRANSFERS = ALL_TRANSFERS.filter(r=>r.id!==id);
@@ -221,7 +265,25 @@ function renderHistory(){
         return;
     }
 
-    document.getElementById("historyBody").innerHTML = filtered.map(r => `
+    document.getElementById("historyBody").innerHTML = filtered.map(r => r.id === EDITING_ID ? `
+        <tr>
+            <td></td>
+            <td>${r.date}</td>
+            <td><span class="chip" style="${r.type==='IN' ? 'background:#E6F3EC;color:#1E5C36;' : 'background:#FCEBE9;color:#8C2A1E;'}">
+                ${r.type==='IN' ? 'Transfer In' : 'Transfer Out'}
+            </span></td>
+            <td><input type="text" id="editOutlet_${r.id}" value="${r.outlet || ''}" style="width:90px;padding:4px 6px;"></td>
+            <td>${r.material_code}</td>
+            <td>${r.material_name}</td>
+            <td class="num"><input type="number" id="editQty_${r.id}" value="${r.qty}" style="width:70px;padding:4px 6px;"></td>
+            <td>${r.uom}</td>
+            <td style="white-space:nowrap;">
+                <input type="text" id="editNote_${r.id}" value="${r.note || ''}" style="width:90px;padding:4px 6px;margin-bottom:4px;display:block;">
+                <button class="btn btn-primary" style="padding:6px 10px;font-size:12px;width:auto;" onclick="saveTransferEdit('${r.id}')">Simpan</button>
+                <button class="btn btn-ghost" style="padding:6px 10px;font-size:12px;width:auto;" onclick="cancelTransferEdit()">Batal</button>
+            </td>
+        </tr>
+    ` : `
         <tr>
             <td><input type="checkbox" class="row-check" value="${r.id}" onchange="updateSelectedCount()"></td>
             <td>${r.date}</td>
@@ -233,9 +295,9 @@ function renderHistory(){
             <td>${r.material_name}</td>
             <td class="num">${r.qty}</td>
             <td>${r.uom}</td>
-            <td>
-                <button class="btn btn-ghost" style="padding:6px 10px;font-size:12px;width:auto;"
-                    onclick="deleteTransfer('${r.id}')">Hapus</button>
+            <td style="white-space:nowrap;">
+                ${IS_ADMIN ? `<button class="btn btn-ghost" style="padding:6px 10px;font-size:12px;width:auto;" onclick="editTransfer('${r.id}')">Edit</button>` : ""}
+                ${IS_ADMIN ? `<button class="btn btn-ghost" style="padding:6px 10px;font-size:12px;width:auto;" onclick="deleteTransfer('${r.id}')">Hapus</button>` : ""}
             </td>
         </tr>
     `).join("");

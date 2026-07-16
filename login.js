@@ -29,16 +29,16 @@ async function attemptLogin() {
     const errorEl = document.getElementById("loginError");
     errorEl.style.display = "none";
 
-    let email;
-    if (user === "admin") {
-        email = ADMIN_EMAIL;
-    } else if (user === "user") {
-        email = USER_EMAIL;
-    } else {
-        errorEl.textContent = "Username atau password salah.";
+    if(!user || !pass){
+        errorEl.textContent = "Isi username dan password.";
         errorEl.style.display = "block";
         return;
     }
+
+    // Username maps predictably to "<username>@abbq-system.local" - this
+    // works for admin/user and any account created later via Kelola Akun
+    // (storepilot1, storepilot2, dst) without needing code changes here.
+    const email = user + "@abbq-system.local";
 
     try {
         await firebase.auth().signInWithEmailAndPassword(email, pass);

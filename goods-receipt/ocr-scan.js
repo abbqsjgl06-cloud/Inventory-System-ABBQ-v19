@@ -138,7 +138,7 @@ function renderOcrReview() {
     body.innerHTML = OCR_ROWS.map(r => `
         <tr>
             <td>
-                <input type="text" value="${r.code}" style="width:80px;" oninput="ocrUpdateCode('${r.rowId}', this.value)">
+                <input type="text" value="${r.code}" style="width:80px;" oninput="ocrUpdateCode('${r.rowId}', this.value)" onblur="ocrCommitCode('${r.rowId}')" onkeydown="if(event.key==='Enter'){ocrCommitCode('${r.rowId}'); this.blur();}">
             </td>
             <td>
                 <div style="font-weight:600;">${r.name || "-"}</div>
@@ -152,9 +152,20 @@ function renderOcrReview() {
 }
 
 function ocrUpdateCode(rowId, value) {
+    // Just store the raw value while typing - deliberately NOT calling
+    // renderOcrReview() here. Re-rendering on every keystroke destroys
+    // and recreates the <input>, which loses focus/cursor position and
+    // breaks typing on Android (each keystroke acts like a fresh tap).
     const row = OCR_ROWS.find(r => r.rowId === rowId);
     if (!row) return;
     row.code = value.trim();
+}
+
+function ocrCommitCode(rowId) {
+    // Runs once the person leaves the field (or presses Enter) - safe
+    // to re-render now since they're done typing this cell.
+    const row = OCR_ROWS.find(r => r.rowId === rowId);
+    if (!row) return;
     const match = MATERIALS.find(m => String(m.code).trim() === row.code);
     row.matched = !!match;
     row.name = match ? match.name : (row.ocrName || row.name);

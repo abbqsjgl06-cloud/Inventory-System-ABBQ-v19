@@ -69,9 +69,22 @@ document.addEventListener("DOMContentLoaded", function () {
                 // No accounts profile / offline / not permitted - keep legacy behavior above.
             })
             .then(function () {
-                _injectUserBadge(user.email, window.CURRENT_ROLE);
+                if (window.CURRENT_ROLE === "admin") {
+                    // Admin can temporarily "view as" a specific outlet.
+                    // The choice is per-browser-tab (sessionStorage) and
+                    // overrides CURRENT_OUTLET_ID for this session only.
+                    var override = sessionStorage.getItem("adminOutletOverride");
+                    if (override) window.CURRENT_OUTLET_ID = override;
+                    return _injectOutletSwitcher(window.CURRENT_OUTLET_ID);
+                }
+            })
+            .then(function () {
+                _injectUserBadge(user.email, window.CURRENT_ROLE, window.CURRENT_OUTLET_ID);
                 _startPresenceHeartbeat(user.email, window.CURRENT_ROLE);
                 _watchPresenceCount(user.email);
+                if (typeof window.initChatWidget === "function") {
+                    window.initChatWidget(user.email, window.CURRENT_ROLE, window.CURRENT_OUTLET_ID);
+                }
                 document.dispatchEvent(new CustomEvent("authReady", {
                     detail: { role: window.CURRENT_ROLE, email: user.email, outletId: window.CURRENT_OUTLET_ID }
                 }));
@@ -80,11 +93,73 @@ document.addEventListener("DOMContentLoaded", function () {
 });
 
 /* ==========================================
+   Admin outlet switcher: dropdown untuk admin
+   memilih "lihat sebagai outlet mana". Pilihan
+   "Semua Outlet" (default) = tidak difilter sama
+   sekali, admin lihat data gabungan semua outlet.
+========================================== */
+function _injectOutletSwitcher(currentOutletId) {
+    return firebase.firestore().collection("outlets").get()
+        .then(function (snap) {
+            if (document.getElementById("outletSwitcher")) return;
+
+            var outlets = [];
+            snap.forEach(function (d) { outlets.push(d.data()); });
+            if (outlets.length === 0) return; // no outlets configured yet
+
+            var hasBizDateBadge = !!document.querySelector(".biz-date-badge");
+            var topOffset = hasBizDateBadge ? "62px" : "14px";
+
+            var wrap = document.createElement("div");
+            wrap.id = "outletSwitcher";
+            wrap.style.cssText = [
+                "position:fixed", "top:" + topOffset, "left:14px", "z-index:9999",
+                "font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif"
+            ].join(";");
+
+            var select = document.createElement("select");
+            select.style.cssText = [
+                "background:rgba(28,27,25,.92)", "color:#fff", "border:none",
+                "border-radius:999px", "padding:6px 12px", "font-size:11px",
+                "font-weight:600", "max-width:44vw"
+            ].join(";");
+
+            var allOpt = document.createElement("option");
+            allOpt.value = "";
+            allOpt.textContent = "🏬 Semua Outlet";
+            select.appendChild(allOpt);
+
+            outlets.forEach(function (o) {
+                var opt = document.createElement("option");
+                opt.value = o.id;
+                opt.textContent = o.name || o.id;
+                if (o.id === currentOutletId) opt.selected = true;
+                select.appendChild(opt);
+            });
+
+            select.addEventListener("change", function () {
+                if (select.value) {
+                    sessionStorage.setItem("adminOutletOverride", select.value);
+                } else {
+                    sessionStorage.removeItem("adminOutletOverride");
+                }
+                window.location.reload();
+            });
+
+            wrap.appendChild(select);
+            document.body.appendChild(wrap);
+        })
+        .catch(function () {
+            // outlets collection not readable / not configured - skip silently
+        });
+}
+
+/* ==========================================
    Floating badge: menampilkan email & role
    (Admin/User) yang sedang login, di semua
    halaman yang memuat auth-guard.js.
 ========================================== */
-function _injectUserBadge(email, role) {
+function _injectUserBadge(email, role, outletId) {
     if (document.getElementById("authUserBadge")) return;
 
     // Turunkan posisi badge kalau halaman index utama sudah punya
@@ -93,7 +168,10 @@ function _injectUserBadge(email, role) {
     var topOffset = hasBizDateBadge ? "62px" : "14px";
 
     var isAdmin = role === "admin";
-    var roleLabel = isAdmin ? "Admin" : "User";
+    // Non-admin accounts show their account name (the part before @) so
+    // it's clear which outlet/person is logged in - e.g.
+    // "sjgl@abbq-system.local" -> "SJGL". Admin badge stays generic.
+    var roleLabel = isAdmin ? "Admin" : String(email).split("@")[0].toUpperCase();
     var dotColor = isAdmin ? "#F2B400" : "#2E7D4F";
 
     var badge = document.createElement("div");
@@ -128,6 +206,24 @@ function _injectUserBadge(email, role) {
 
     textWrap.appendChild(text);
     textWrap.appendChild(subText);
+
+    // Non-admin: tampilkan status outlet yang terdeteksi. Ini sengaja
+    // dibuat MENCOLOK kalau belum di-set, karena kondisi ini persis yang
+    // menyebabkan akun melihat data outlet lain (belum difilter sama
+    // sekali karena tidak tahu harus filter ke outlet mana).
+    if (!isAdmin) {
+        var outletLine = document.createElement("span");
+        outletLine.id = "authUserBadgeOutlet";
+        outletLine.style.cssText = "font-size:9px;font-weight:700;white-space:nowrap;";
+        if (outletId) {
+            outletLine.style.opacity = ".85";
+            outletLine.textContent = "🏬 " + outletId;
+        } else {
+            outletLine.style.color = "#FFD166";
+            outletLine.textContent = "⚠ Outlet belum di-set";
+        }
+        textWrap.appendChild(outletLine);
+    }
 
     badge.appendChild(dot);
     badge.appendChild(textWrap);

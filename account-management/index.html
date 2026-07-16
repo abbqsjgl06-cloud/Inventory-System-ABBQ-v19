@@ -185,6 +185,22 @@
     </p>
   </div>
 
+  <div class="panel" style="border:2px solid #C23B2E;">
+    <div class="panel-title">⚠️ Migrasi Data Lama ke Outlet</div>
+    <p style="font-size:12px;color:var(--muted);line-height:1.6;margin-bottom:12px;">
+      Data yang dibuat <b>sebelum</b> sistem outlet ini ada (misalnya riwayat akun "user" lama) belum
+      punya label outlet, jadi tidak akan terlihat oleh akun yang sudah di-set ke outlet tertentu.
+      Pakai ini <b>sekali saja</b> untuk menandai semua data lama itu sebagai milik 1 outlet pilihan Anda
+      (biasanya outlet utama/pusat Anda), supaya riwayatnya tidak hilang.
+    </p>
+    <div class="field">
+      <label>Outlet Tujuan untuk Data Lama</label>
+      <select id="migrateOutletSelect"></select>
+    </div>
+    <button class="btn btn-secondary" style="border-color:#C23B2E;color:#C23B2E;" onclick="migrateLegacyDataToOutlet()">Jalankan Migrasi</button>
+    <div id="migrateResult" style="font-size:13px;margin-top:10px;white-space:pre-line;"></div>
+  </div>
+
   </div>
 
 </main>
@@ -197,9 +213,10 @@
 <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-functions-compat.js"></script>
 <script src="../shared/firebase-config.js"></script>
 <script>window.AUTH_GUARD_DEPTH = 1;</script>
-<script src="../shared/auth-guard.js?v=37"></script>
+<script src="../shared/auth-guard.js?v=43"></script>
+<script src="../shared/chat-widget.js?v=1"></script>
 <script src="../shared/inv-db.js?v=35"></script>
 <script src="../shared/ui-dialog.js?v=33"></script>
-<script src="app.js?v=1"></script>
+<script src="app.js?v=41"></script>
 </body>
 </html>
