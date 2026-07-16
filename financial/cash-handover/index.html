@@ -2,7 +2,7 @@
 <html lang="id">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=5,user-scalable=yes">
 <title>Cash Handover — Financial ABBQ</title>
 <link rel="icon" href="../../logo.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -56,26 +56,26 @@
           </tr>
           <tr>
             <th>Fractions</th>
-            <th>Amount</th><th>Qty</th>
-            <th>Amount</th><th>Qty</th>
+            <th>Qty</th><th>Amount</th>
+            <th>Qty</th><th>Amount</th>
           </tr>
         </thead>
         <tbody id="denomBody"></tbody>
         <tbody>
           <tr class="total-row">
             <td>Total</td>
-            <td class="amount-cell" id="openTotal">0</td><td></td>
-            <td class="amount-cell" id="closeTotal">0</td><td></td>
+            <td></td><td class="amount-cell" id="openTotal">0</td>
+            <td></td><td class="amount-cell" id="closeTotal">0</td>
           </tr>
           <tr class="expected-row">
             <td>Expected</td>
-            <td><input type="number" id="openExpected" value="0" oninput="recalc()"></td><td></td>
-            <td><input type="number" id="closeExpected" value="0" oninput="recalc()"></td><td></td>
+            <td></td><td><input type="number" id="openExpected" value="0" oninput="recalc()"></td>
+            <td></td><td><input type="number" id="closeExpected" value="0" oninput="recalc()"></td>
           </tr>
           <tr class="variance-row">
             <td>Variance</td>
-            <td class="amount-cell" id="openVariance">0</td><td></td>
-            <td class="amount-cell" id="closeVariance">0</td><td></td>
+            <td></td><td class="amount-cell" id="openVariance">0</td>
+            <td></td><td class="amount-cell" id="closeVariance">0</td>
           </tr>
         </tbody>
       </table>
@@ -86,11 +86,17 @@
     <div class="panel-title">🪙 Handover Petty Cash</div>
     <div class="field">
       <label>Cash in Hand</label>
-      <input type="number" id="pcCashInHand" value="0" oninput="recalc()">
+      <div style="display:flex;gap:8px;align-items:stretch;">
+        <input type="number" id="pcCashInHand" value="0" oninput="recalc()" style="flex:1;">
+        <button type="button" class="btn btn-secondary" style="width:auto;padding:0 16px;" onclick="openMiniCalculator('pcCashInHand')">🧮</button>
+      </div>
     </div>
     <div class="field">
       <label>Receipts</label>
-      <input type="number" id="pcReceipts" value="0" oninput="recalc()">
+      <div style="display:flex;gap:8px;align-items:stretch;">
+        <input type="number" id="pcReceipts" value="0" oninput="recalc()" style="flex:1;">
+        <button type="button" class="btn btn-secondary" style="width:auto;padding:0 16px;" onclick="openMiniCalculator('pcReceipts')">🧮</button>
+      </div>
     </div>
     <div class="table-wrap">
       <table class="hc-table">
@@ -135,9 +141,10 @@
 <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script>
 <script src="../../shared/firebase-config.js"></script>
 <script>window.AUTH_GUARD_DEPTH = 2;</script>
-<script src="../../shared/auth-guard.js?v=36"></script>
+<script src="../../shared/auth-guard.js?v=37"></script>
 <script src="../../shared/inv-db.js?v=35"></script>
 <script src="../../shared/ui-dialog.js?v=35"></script>
-<script src="app.js?v=1"></script>
+<script src="../../shared/mini-calculator.js?v=1"></script>
+<script src="app.js?v=3"></script>
 </body>
 </html>

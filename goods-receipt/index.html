@@ -2,7 +2,7 @@
 <html lang="id">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=5,user-scalable=yes">
 <title>Barang Masuk — Inventory ABBQ</title>
 <link rel="icon" href="../logo.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -56,6 +56,38 @@
     <div class="field">
       <label>Keterangan / No. PO (opsional, berlaku untuk semua item di bawah)</label>
       <input type="text" id="rcvNote" placeholder="cth QX26050037">
+    </div>
+
+    <hr style="border:none;border-top:1px solid var(--line);margin:16px 0;">
+
+    <div class="panel" style="background:#EAF3FF;border:2px dashed #4A90D9;margin:0 0 16px;">
+      <div class="panel-title">📷 Scan PO dari Foto (Beta)</div>
+      <p style="font-size:12px;color:var(--muted);margin-bottom:10px;">
+        Foto dokumen PO/DO, sistem akan coba baca Kode &amp; Nama Barang otomatis.
+        <b>Selalu cek ulang hasilnya</b> — foto pudar/tulisan tangan sering salah baca.
+        Qty tetap harus diisi manual karena biasanya tidak tercetak di dokumen.
+      </p>
+      <input id="ocrPhotoInput" type="file" accept="image/*" capture="environment" style="display:none;">
+      <input id="ocrPhotoInputGallery" type="file" accept="image/*" style="display:none;">
+      <div style="display:flex;gap:8px;margin-bottom:10px;">
+        <button type="button" class="btn btn-secondary" style="flex:1;" onclick="document.getElementById('ocrPhotoInput').click()">📷 Ambil Foto</button>
+        <button type="button" class="btn btn-secondary" style="flex:1;" onclick="document.getElementById('ocrPhotoInputGallery').click()">🖼️ Dari Galeri</button>
+      </div>
+      <div id="ocrStatus" style="font-size:13px;font-weight:600;display:none;margin-bottom:10px;"></div>
+      <img id="ocrPreview" style="display:none;max-width:100%;border-radius:10px;margin-bottom:10px;">
+
+      <div id="ocrReviewWrap" style="display:none;">
+        <div class="table-wrap" style="margin-bottom:10px;">
+          <table>
+            <thead><tr><th>Kode</th><th>Nama Barang</th><th>UOM</th><th>Qty</th><th></th></tr></thead>
+            <tbody id="ocrReviewBody"></tbody>
+          </table>
+        </div>
+        <div class="btn-row">
+          <button type="button" class="btn btn-secondary" onclick="ocrAddManualRow()">+ Tambah Baris</button>
+          <button type="button" class="btn btn-primary" onclick="ocrAddAllToStaging()">✓ Tambahkan ke Daftar Item</button>
+        </div>
+      </div>
     </div>
 
     <hr style="border:none;border-top:1px solid var(--line);margin:16px 0;">
@@ -143,11 +175,13 @@
 <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script>
 <script src="../shared/firebase-config.js"></script>
 <script>window.AUTH_GUARD_DEPTH = 1;</script>
-<script src="../shared/auth-guard.js?v=36"></script>
+<script src="../shared/auth-guard.js?v=37"></script>
 <script src="../shared/xlsx.full.min.js?v=31"></script>
 <script src="../shared/seed-data.js?v=31"></script>
 <script src="../shared/inv-db.js?v=35"></script>
 <script src="../shared/ui-dialog.js?v=31"></script>
 <script src="app.js?v=34"></script>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+<script src="ocr-scan.js?v=1"></script>
 </body>
 </html>

@@ -2,12 +2,12 @@
 <html lang="id">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=5,user-scalable=yes">
 <title>Master Data — Inventory ABBQ</title>
 <link rel="icon" href="../logo.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="../shared/inv-style.css?v=25">
+<link rel="stylesheet" href="../shared/inv-style.css?v=36">
 <style>
   :root{ --accent:#4A4A4A; --accent-tint:#ECECEC; }
   .tabs{display:flex;gap:8px;margin-bottom:16px;overflow-x:auto;}
@@ -18,29 +18,9 @@
   .tab-btn.active{background:var(--ink);color:#fff;border-color:var(--ink);}
   .tab-panel{display:none;}
   .tab-panel.active{display:block;}
-
-  #loginGate{
-    position:fixed;inset:0;background:var(--paper, #FAF7F2);
-    display:flex;align-items:center;justify-content:center;
-    z-index:1000;padding:24px;
-  }
-  #loginGate .login-box{
-    background:#fff;border:1px solid var(--line);border-radius:16px;
-    padding:24px;width:100%;max-width:360px;
-  }
 </style>
 </head>
 <body>
-
-<div id="loginGate" style="display:none;">
-  <div class="login-box">
-    <div class="panel-title" style="margin-bottom:16px;">🔒 Akses Ditolak</div>
-    <p style="font-size:13px;color:var(--muted);margin-bottom:16px;">
-      Halaman Master Data hanya bisa diakses oleh akun admin.
-    </p>
-    <a href="../index.html" style="display:block;text-align:center;font-size:13px;color:var(--ink);font-weight:700;">← Kembali ke Menu Utama</a>
-  </div>
-</div>
 
 <div id="appContent" style="display:none;">
 
@@ -54,7 +34,7 @@
 
 <main>
 
-  <div class="panel">
+  <div class="panel admin-only" id="panelOutletName">
     <div class="panel-title">Nama Outlet</div>
     <div class="field">
       <input type="text" id="outletName" placeholder="Contoh: ABBQ Indonesia - Outlet Pusat">
@@ -62,7 +42,7 @@
     <button class="btn btn-primary" onclick="saveOutletName()">Simpan Nama Outlet</button>
   </div>
 
-  <div class="panel">
+  <div class="panel admin-only" id="panelBomUpload">
     <div class="panel-title">📥 Update BOM dari File Excel</div>
     <p style="font-size:13px;color:var(--muted);margin-bottom:12px;">
       Kalau ada resep/menu baru atau perubahan BOM, upload file Excel-nya di sini
@@ -121,13 +101,13 @@
 
     <div class="tab-panel active" id="tab-materials">
       <div class="panel">
-        <div class="panel-title">Cari &amp; Kelola Item</div>
+        <div class="panel-title">Cari Item</div>
         <div class="field">
           <input type="text" id="searchMaterial" placeholder="Cari kode atau nama item..." oninput="renderMaterials()">
         </div>
       </div>
 
-      <div class="panel">
+      <div class="panel admin-only" id="panelAddMaterial">
         <div class="panel-title">Tambah / Edit Item Manual</div>
         <div class="field-row">
           <div class="field">
@@ -156,7 +136,7 @@
       <div class="table-wrap">
         <table>
           <thead>
-            <tr><th>Kode</th><th>Nama Item</th><th>UOM</th><th class="num">Konv</th><th></th></tr>
+            <tr><th>Kode</th><th>Nama Item</th><th>UOM</th><th class="num">Konv</th><th class="admin-only-cell"></th></tr>
           </thead>
           <tbody id="materialsBody"></tbody>
         </table>
@@ -173,7 +153,7 @@
       <div id="menuList"></div>
     </div>
 
-    <div class="panel">
+    <div class="panel admin-only" id="panelResetSeed">
       <div class="panel-title">Reset Data Master</div>
       <p style="font-size:13px;color:var(--muted);margin-bottom:12px;">
         Menghapus seluruh item &amp; BOM lalu memuat ulang dari data awal (seed).
@@ -196,10 +176,10 @@
 <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script>
 <script src="../shared/firebase-config.js"></script>
 <script>window.AUTH_GUARD_DEPTH = 1;</script>
-<script src="../shared/auth-guard.js?v=36"></script>
+<script src="../shared/auth-guard.js?v=37"></script>
 <script src="../shared/seed-data.js?v=25"></script>
 <script src="../shared/inv-db.js?v=35"></script>
 <script src="../shared/ui-dialog.js?v=25"></script>
-<script src="app.js?v=25"></script>
+<script src="app.js?v=26"></script>
 </body>
 </html>

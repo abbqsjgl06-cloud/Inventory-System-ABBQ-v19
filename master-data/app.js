@@ -5,16 +5,17 @@ let ALL_MENUS = [];
 let ALL_BOM = [];
 let DETAIL_LOADED = false;
 
+let IS_ADMIN = false;
+
 document.addEventListener("authReady", (e) => {
-    if(e.detail.role === "admin"){
-        unlockApp();
-    } else {
-        document.getElementById("loginGate").style.display = "flex";
-    }
+    IS_ADMIN = e.detail.role === "admin";
+    document.querySelectorAll(".admin-only").forEach(el => {
+        el.style.display = IS_ADMIN ? "" : "none";
+    });
+    unlockApp();
 });
 
 function unlockApp(){
-    document.getElementById("loginGate").style.display = "none";
     document.getElementById("appContent").style.display = "block";
 
     document.getElementById("bomFileInput").addEventListener("change", handleBomFile);
@@ -58,6 +59,7 @@ async function ensureSeed(){
 }
 
 async function resetSeed(){
+    if(!IS_ADMIN){ toast("Hanya Admin yang boleh mereset data master","error"); return; }
     if(!await uiConfirm("Reset seluruh Item & BOM ke data awal? Perubahan manual pada master akan hilang.")) return;
     await InvDB.clear("materials");
     await InvDB.clear("bom");
@@ -73,6 +75,7 @@ async function loadOutletName(){
 }
 
 async function saveOutletName(){
+    if(!IS_ADMIN){ toast("Hanya Admin yang boleh mengubah ini","error"); return; }
     const val = document.getElementById("outletName").value.trim();
     if(!val){ toast("Nama outlet tidak boleh kosong","error"); return; }
     await InvDB.setSetting("outletName", val);
@@ -109,16 +112,19 @@ function renderMaterials(){
             <td>${m.uom || ""}</td>
             <td class="num">${m.konv ?? ""}</td>
             <td>
+                ${IS_ADMIN ? `
                 <button class="btn btn-ghost" style="padding:6px 10px;font-size:12px;width:auto;"
                     onclick="editMaterial('${m.code}')">Edit</button>
                 <button class="btn btn-ghost" style="padding:6px 10px;font-size:12px;width:auto;color:#C23B2E;"
                     onclick="deleteMaterial('${m.code}')">Hapus</button>
+                ` : ""}
             </td>
         </tr>
     `).join("");
 }
 
 function editMaterial(code){
+    if(!IS_ADMIN){ toast("Hanya Admin yang boleh mengedit","error"); return; }
     const m = ALL_MATERIALS.find(x=>x.code===code);
     if(!m) return;
     document.getElementById("matCode").value = m.code;
@@ -129,6 +135,7 @@ function editMaterial(code){
 }
 
 async function deleteMaterial(code){
+    if(!IS_ADMIN){ toast("Hanya Admin yang boleh menghapus","error"); return; }
     const m = ALL_MATERIALS.find(x=>x.code===code);
     if(!m) return;
     if(!await uiConfirm(`Hapus item "${m.name}" (kode ${code})? Item ini tidak akan muncul lagi di dropdown Waste Tracker, Barang Masuk, Transfer, dll. Data transaksi lama yang sudah memakai item ini tidak akan terhapus.`)) return;
@@ -151,6 +158,7 @@ function resetMaterialForm(){
 }
 
 async function saveMaterial(){
+    if(!IS_ADMIN){ toast("Hanya Admin yang boleh menambah/mengedit item","error"); return; }
     const code = document.getElementById("matCode").value.trim();
     const name = document.getElementById("matName").value.trim();
     const uom = document.getElementById("matUom").value.trim();
@@ -226,6 +234,7 @@ function toast(msg, type="success"){
 let PENDING_BOM_IMPORT = null;
 
 function handleBomFile(e){
+    if(!IS_ADMIN){ toast("Hanya Admin yang boleh upload BOM","error"); return; }
     const file = e.target.files[0];
     if(!file) return;
     document.getElementById("bomFileName").textContent = file.name;
@@ -335,6 +344,7 @@ async function processBomWorkbook(wb){
 }
 
 async function confirmBomImport(){
+    if(!IS_ADMIN){ toast("Hanya Admin yang boleh update BOM","error"); return; }
     if(!PENDING_BOM_IMPORT){ toast("Belum ada file yang diproses","error"); return; }
     if(!await uiConfirm("Update Master Data (Item & BOM) dengan file ini? Data BOM & daftar menu lama akan digantikan.")) return;
 

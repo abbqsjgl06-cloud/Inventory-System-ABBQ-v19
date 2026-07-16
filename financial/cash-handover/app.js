@@ -41,10 +41,10 @@ function renderDenomRows(){
         html += `
             <tr>
                 <td>${d.toLocaleString("id-ID")}</td>
-                <td class="amount-cell" id="openAmt_${d}">0</td>
-                <td><input type="number" min="0" id="openQty_${d}" value="0" oninput="recalc()"></td>
-                <td class="amount-cell" id="closeAmt_${d}">0</td>
-                <td><input type="number" min="0" id="closeQty_${d}" value="0" oninput="recalc()"></td>
+                <td class="amount-cell" id="openQty_${d}">0</td>
+                <td><input type="number" min="0" step="any" id="openAmt_${d}" value="0" oninput="recalc()"></td>
+                <td class="amount-cell" id="closeQty_${d}">0</td>
+                <td><input type="number" min="0" step="any" id="closeAmt_${d}" value="0" oninput="recalc()"></td>
             </tr>
         `;
     });
@@ -53,10 +53,10 @@ function renderDenomRows(){
         html += `
             <tr>
                 <td>${r.label}</td>
+                <td class="amount-cell">-</td>
                 <td><input type="number" min="0" id="openAmt_${r.key}" value="0" oninput="recalc()"></td>
-                <td></td>
+                <td class="amount-cell">-</td>
                 <td><input type="number" min="0" id="closeAmt_${r.key}" value="0" oninput="recalc()"></td>
-                <td></td>
             </tr>
         `;
     });
@@ -77,12 +77,12 @@ function recalc(){
     let openTotal = 0, closeTotal = 0;
 
     DENOMS.forEach(d => {
-        const openQty = num(`openQty_${d}`);
-        const closeQty = num(`closeQty_${d}`);
-        const openAmt = d * openQty;
-        const closeAmt = d * closeQty;
-        document.getElementById(`openAmt_${d}`).textContent = openAmt.toLocaleString("id-ID");
-        document.getElementById(`closeAmt_${d}`).textContent = closeAmt.toLocaleString("id-ID");
+        const openAmt = num(`openAmt_${d}`);
+        const closeAmt = num(`closeAmt_${d}`);
+        const openQty = openAmt / d;
+        const closeQty = closeAmt / d;
+        document.getElementById(`openQty_${d}`).textContent = formatQty(openQty);
+        document.getElementById(`closeQty_${d}`).textContent = formatQty(closeQty);
         openTotal += openAmt;
         closeTotal += closeAmt;
     });
@@ -108,6 +108,13 @@ function recalc(){
     document.getElementById("pcVariance").textContent = (pcTotal - pcExpected).toLocaleString("id-ID");
 }
 
+function formatQty(qty){
+    // Bulatkan noise pembulatan angka desimal (mis. 0.30000000000000004 -> 0.3),
+    // tapi tetap tampilkan desimal kalau amount-nya memang tidak pas kelipatan pecahan.
+    const rounded = Math.round(qty * 100) / 100;
+    return rounded.toLocaleString("id-ID");
+}
+
 /* ======================================
    BUILD / FILL FORM DATA
 ====================================== */
@@ -117,8 +124,8 @@ function buildData(date){
     const closing = {};
 
     DENOMS.forEach(d => {
-        opening[d] = num(`openQty_${d}`);
-        closing[d] = num(`closeQty_${d}`);
+        opening[d] = num(`openAmt_${d}`);
+        closing[d] = num(`closeAmt_${d}`);
     });
     FREE_ROWS.forEach(r => {
         opening[r.key] = num(`openAmt_${r.key}`);
@@ -126,7 +133,7 @@ function buildData(date){
     });
 
     let openTotal = 0, closeTotal = 0;
-    DENOMS.forEach(d => { openTotal += d * opening[d]; closeTotal += d * closing[d]; });
+    DENOMS.forEach(d => { openTotal += opening[d]; closeTotal += closing[d]; });
     FREE_ROWS.forEach(r => { openTotal += opening[r.key]; closeTotal += closing[r.key]; });
 
     const pcCashInHand = num("pcCashInHand");
@@ -136,6 +143,7 @@ function buildData(date){
     return {
         id: docIdFor(date),
         date,
+        schemaVersion: 2,
         opening, closing,
         openTotal, closeTotal,
         openExpected: num("openExpected"),
@@ -154,9 +162,17 @@ function buildData(date){
 }
 
 function fillForm(data){
+    // Data lama (sebelum perubahan ini) menyimpan Qty pada field opening/closing
+    // per pecahan, bukan Amount. Konversi otomatis di sini supaya data lama
+    // tetap terbaca benar - baris RECEH/BG tidak terpengaruh karena dari
+    // dulu memang berbasis Amount, bukan Qty.
+    const isLegacy = data.schemaVersion !== 2;
+
     DENOMS.forEach(d => {
-        document.getElementById(`openQty_${d}`).value = (data.opening && data.opening[d]) || 0;
-        document.getElementById(`closeQty_${d}`).value = (data.closing && data.closing[d]) || 0;
+        const openRaw = (data.opening && data.opening[d]) || 0;
+        const closeRaw = (data.closing && data.closing[d]) || 0;
+        document.getElementById(`openAmt_${d}`).value = isLegacy ? openRaw * d : openRaw;
+        document.getElementById(`closeAmt_${d}`).value = isLegacy ? closeRaw * d : closeRaw;
     });
     FREE_ROWS.forEach(r => {
         document.getElementById(`openAmt_${r.key}`).value = (data.opening && data.opening[r.key]) || 0;
@@ -172,8 +188,8 @@ function fillForm(data){
 
 function resetForm(){
     DENOMS.forEach(d => {
-        document.getElementById(`openQty_${d}`).value = 0;
-        document.getElementById(`closeQty_${d}`).value = 0;
+        document.getElementById(`openAmt_${d}`).value = 0;
+        document.getElementById(`closeAmt_${d}`).value = 0;
     });
     FREE_ROWS.forEach(r => {
         document.getElementById(`openAmt_${r.key}`).value = 0;

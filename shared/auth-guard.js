@@ -197,7 +197,7 @@ function _watchPresenceCount(email) {
 
         var subText = document.getElementById("authUserBadgeSub");
         if (subText) {
-            subText.textContent = onlineCount === 1 ? "1 sesi online" : onlineCount + " sesi online";
+            subText.textContent = onlineCount === 1 ? "1 online" : onlineCount + " online";
         }
     }
 
