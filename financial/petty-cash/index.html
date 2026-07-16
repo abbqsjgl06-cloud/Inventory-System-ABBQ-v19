@@ -110,11 +110,37 @@
     <div style="font-size:13px;font-weight:700;margin-top:10px;" id="histTotalLine"></div>
     <div class="table-wrap" style="margin-top:10px;">
       <table>
-        <thead><tr><th>Tanggal</th><th>Kategori</th><th>Deskripsi</th><th class="num">Amount</th><th></th><th></th></tr></thead>
+        <thead><tr><th></th><th>Tanggal</th><th>Kategori</th><th>Deskripsi</th><th class="num">Amount</th><th></th><th></th></tr></thead>
         <tbody id="histBody"></tbody>
       </table>
     </div>
-    <button class="btn btn-secondary" style="margin-top:12px;" onclick="exportExcel()">⬇ Export ke Excel</button>
+    <div class="btn-row" style="margin-top:12px;">
+      <button class="btn btn-secondary" id="exportBtn" onclick="exportExcel()">⬇ Export ke Excel</button>
+      <button class="btn btn-primary" id="reimburseBtn" onclick="reimburseSelected()" disabled>🔁 Reimburse Terpilih</button>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-title">🔁 Reimburse</div>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:10px;">Transaksi yang sudah di-reimburse tidak lagi mengurangi Saldo Petty Cash.</p>
+    <div class="field-row">
+      <div class="field">
+        <label>Dari Tanggal Reimburse</label>
+        <input type="date" id="reimbFrom">
+      </div>
+      <div class="field">
+        <label>Sampai Tanggal Reimburse</label>
+        <input type="date" id="reimbTo">
+      </div>
+    </div>
+    <button class="btn btn-secondary" onclick="loadReimburse()">🔍 Tampilkan Riwayat Reimburse</button>
+    <div style="font-size:13px;font-weight:700;margin-top:10px;" id="reimbTotalLine"></div>
+    <div class="table-wrap" style="margin-top:10px;">
+      <table>
+        <thead><tr><th>Tgl Transaksi</th><th>Tgl Reimburse</th><th>Kategori</th><th>Deskripsi</th><th class="num">Amount</th><th></th></tr></thead>
+        <tbody id="reimbBody"></tbody>
+      </table>
+    </div>
   </div>
 
 </main>
@@ -127,9 +153,9 @@
 <script src="../../shared/firebase-config.js"></script>
 <script>window.AUTH_GUARD_DEPTH = 2;</script>
 <script src="../../shared/auth-guard.js?v=36"></script>
-<script src="../../shared/inv-db.js?v=35"></script>
-<script src="../../shared/ui-dialog.js?v=35"></script>
+<script src="../../shared/inv-db.js?v=36"></script>
+<script src="../../shared/ui-dialog.js?v=36"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
-<script src="app.js?v=1"></script>
+<script src="app.js?v=2"></script>
 </body>
 </html>

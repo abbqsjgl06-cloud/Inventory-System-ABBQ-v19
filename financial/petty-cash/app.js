@@ -7,6 +7,7 @@ let ALL_USAGE = [];
 let HISTORY_FILTERED = [];
 let currentPhoto = null;
 let editId = null;
+let SELECTED_IDS = new Set();
 
 document.addEventListener("authReady", (e) => {
     IS_ADMIN = e.detail.role === "admin";
@@ -22,6 +23,8 @@ document.addEventListener("DOMContentLoaded", () => {
     start.setDate(start.getDate() - 30);
     document.getElementById("histFrom").value = start.toISOString().slice(0, 10);
     document.getElementById("histTo").value = end;
+    document.getElementById("reimbFrom").value = start.toISOString().slice(0, 10);
+    document.getElementById("reimbTo").value = end;
 
     bindPhoto();
     loadSummary();
@@ -73,7 +76,8 @@ async function loadSummary() {
         const [saldoAwal, usage] = await Promise.all([getSaldoAwal(), InvDB.getAll("pettyCashUsage")]);
         ALL_USAGE = usage;
 
-        const totalUsage = usage.reduce((sum, u) => sum + (Number(u.amount) || 0), 0);
+        const activeUsage = usage.filter(u => !u.reimbursed);
+        const totalUsage = activeUsage.reduce((sum, u) => sum + (Number(u.amount) || 0), 0);
         const saldoAkhir = saldoAwal - totalUsage;
 
         document.getElementById("sumSaldoAwal").textContent = rupiah(saldoAwal);
@@ -253,14 +257,21 @@ async function loadHistory() {
     try {
         const all = ALL_USAGE.length ? ALL_USAGE : await InvDB.getAll("pettyCashUsage");
         ALL_USAGE = all;
-        HISTORY_FILTERED = all.filter(u => u.date >= from && u.date <= to).sort((a, b) => b.date.localeCompare(a.date));
+        SELECTED_IDS.clear();
+
+        // Hanya tampilkan transaksi yang belum di-reimburse - yang sudah
+        // di-reimburse pindah ke panel "Reimburse" di bawah.
+        HISTORY_FILTERED = all
+            .filter(u => !u.reimbursed && u.date >= from && u.date <= to)
+            .sort((a, b) => b.date.localeCompare(a.date));
 
         const body = document.getElementById("histBody");
         const totalLine = document.getElementById("histTotalLine");
 
         if (HISTORY_FILTERED.length === 0) {
-            body.innerHTML = `<tr><td colspan="6" class="empty">Tidak ada data pada rentang ini</td></tr>`;
+            body.innerHTML = `<tr><td colspan="7" class="empty">Tidak ada data pada rentang ini</td></tr>`;
             totalLine.textContent = "";
+            updateActionButtons();
             return;
         }
 
@@ -269,6 +280,7 @@ async function loadHistory() {
 
         body.innerHTML = HISTORY_FILTERED.map(u => `
             <tr>
+                <td><input type="checkbox" class="pcRowCheck" value="${u.id}" onchange="toggleSelect('${u.id}', this.checked)"></td>
                 <td>${u.date}</td>
                 <td>${u.category}</td>
                 <td>${u.description}</td>
@@ -280,14 +292,43 @@ async function loadHistory() {
                 </td>
             </tr>
         `).join("");
+
+        updateActionButtons();
     } catch (err) {
         console.error(err);
         toast("Gagal memuat riwayat", "error");
     }
 }
 
+function toggleSelect(id, checked) {
+    if (checked) SELECTED_IDS.add(id);
+    else SELECTED_IDS.delete(id);
+    updateActionButtons();
+}
+
+function updateActionButtons() {
+    const count = SELECTED_IDS.size;
+    const totalSelected = HISTORY_FILTERED
+        .filter(u => SELECTED_IDS.has(u.id))
+        .reduce((s, u) => s + (Number(u.amount) || 0), 0);
+
+    const reimburseBtn = document.getElementById("reimburseBtn");
+    const exportBtn = document.getElementById("exportBtn");
+
+    reimburseBtn.disabled = count === 0;
+    reimburseBtn.textContent = count === 0
+        ? "🔁 Reimburse Terpilih"
+        : `🔁 Reimburse Terpilih (${count} · ${rupiah(totalSelected)})`;
+
+    exportBtn.textContent = count === 0
+        ? `⬇ Export ke Excel (Semua: ${HISTORY_FILTERED.length})`
+        : `⬇ Export ke Excel (Terpilih: ${count})`;
+}
+
 function showPhoto(id) {
-    const item = HISTORY_FILTERED.find(u => u.id === id) || ALL_USAGE.find(u => u.id === id);
+    const item = HISTORY_FILTERED.find(u => u.id === id)
+        || REIMBURSE_FILTERED.find(u => u.id === id)
+        || ALL_USAGE.find(u => u.id === id);
     if (!item || !item.photo) return;
     const win = window.open("");
     if (!win) { toast("Popup diblokir browser. Izinkan popup untuk melihat foto.", "error"); return; }
@@ -303,6 +344,113 @@ function showPhoto(id) {
 }
 
 /* ======================================
+   REIMBURSE
+====================================== */
+
+let REIMBURSE_FILTERED = [];
+
+async function reimburseSelected() {
+    if (SELECTED_IDS.size === 0) return;
+
+    const selected = HISTORY_FILTERED.filter(u => SELECTED_IDS.has(u.id));
+    const totalSelected = selected.reduce((s, u) => s + (Number(u.amount) || 0), 0);
+
+    const ok = await uiConfirm(
+        `Reimburse ${selected.length} transaksi senilai ${rupiah(totalSelected)}?\n` +
+        `Transaksi ini akan pindah ke daftar Reimburse dan tidak lagi mengurangi Saldo Petty Cash.`
+    );
+    if (!ok) return;
+
+    try {
+        const reimbursedDate = today();
+        for (const u of selected) {
+            await InvDB.put("pettyCashUsage", {
+                ...u,
+                reimbursed: true,
+                reimbursedDate,
+                updatedAt: new Date().toISOString()
+            });
+        }
+
+        toast(`✓ ${selected.length} transaksi berhasil di-reimburse`, "success");
+        SELECTED_IDS.clear();
+        ALL_USAGE = [];
+        await loadSummary();
+        await loadHistory();
+    } catch (err) {
+        console.error(err);
+        toast("Gagal memproses reimburse. Cek koneksi internet.", "error");
+    }
+}
+
+async function loadReimburse() {
+    const from = document.getElementById("reimbFrom").value;
+    const to = document.getElementById("reimbTo").value;
+    if (!from || !to) { toast("Pilih rentang tanggal dulu", "error"); return; }
+
+    try {
+        const all = ALL_USAGE.length ? ALL_USAGE : await InvDB.getAll("pettyCashUsage");
+        ALL_USAGE = all;
+
+        REIMBURSE_FILTERED = all
+            .filter(u => u.reimbursed && u.reimbursedDate >= from && u.reimbursedDate <= to)
+            .sort((a, b) => (b.reimbursedDate || "").localeCompare(a.reimbursedDate || ""));
+
+        const body = document.getElementById("reimbBody");
+        const totalLine = document.getElementById("reimbTotalLine");
+
+        if (REIMBURSE_FILTERED.length === 0) {
+            body.innerHTML = `<tr><td colspan="6" class="empty">Tidak ada data reimburse pada rentang ini</td></tr>`;
+            totalLine.textContent = "";
+            return;
+        }
+
+        const totalRange = REIMBURSE_FILTERED.reduce((s, u) => s + (Number(u.amount) || 0), 0);
+        totalLine.textContent = `Total reimburse pada rentang ini: ${rupiah(totalRange)}`;
+
+        body.innerHTML = REIMBURSE_FILTERED.map(u => `
+            <tr>
+                <td>${u.date}</td>
+                <td>${u.reimbursedDate || "-"}</td>
+                <td>${u.category}</td>
+                <td>${u.description}</td>
+                <td class="num">${rupiah(u.amount)}</td>
+                <td>
+                    ${u.photo ? `<button class="btn btn-ghost" style="padding:4px 10px;font-size:12px;" onclick="showPhoto('${u.id}')">Foto</button>` : ""}
+                    <button class="btn btn-ghost" style="padding:4px 10px;font-size:12px;" onclick="undoReimburse('${u.id}')">Batalkan</button>
+                </td>
+            </tr>
+        `).join("");
+    } catch (err) {
+        console.error(err);
+        toast("Gagal memuat riwayat reimburse", "error");
+    }
+}
+
+async function undoReimburse(id) {
+    if (!await uiConfirm("Batalkan reimburse transaksi ini? Transaksi akan kembali ke Riwayat Penggunaan dan mengurangi Saldo Petty Cash lagi.")) return;
+
+    const item = ALL_USAGE.find(u => u.id === id);
+    if (!item) return;
+
+    try {
+        await InvDB.put("pettyCashUsage", {
+            ...item,
+            reimbursed: false,
+            reimbursedDate: null,
+            updatedAt: new Date().toISOString()
+        });
+        toast("✓ Reimburse dibatalkan", "success");
+        ALL_USAGE = [];
+        await loadSummary();
+        await loadReimburse();
+    } catch (err) {
+        console.error(err);
+        toast("Gagal membatalkan reimburse", "error");
+    }
+}
+
+/* ======================================
    EXPORT EXCEL (foto ter-embed)
 ====================================== */
 
@@ -311,6 +459,10 @@ async function exportExcel() {
         toast("Tampilkan riwayat dulu sebelum export", "error");
         return;
     }
+
+    const records = SELECTED_IDS.size > 0
+        ? HISTORY_FILTERED.filter(u => SELECTED_IDS.has(u.id))
+        : HISTORY_FILTERED;
 
     try {
         const wb = new ExcelJS.Workbook();
@@ -324,9 +476,9 @@ async function exportExcel() {
         ];
         ws.getRow(1).font = { bold: true };
 
-        const records = [...HISTORY_FILTERED].sort((a, b) => a.date.localeCompare(b.date));
+        const sortedRecords = [...records].sort((a, b) => a.date.localeCompare(b.date));
 
-        records.forEach((r, idx) => {
+        sortedRecords.forEach((r, idx) => {
             const rowIndex = idx + 2;
             const row = ws.addRow({
                 date: r.date,
@@ -356,7 +508,7 @@ async function exportExcel() {
             }
         });
 
-        const totalRow = ws.addRow({ date: "", category: "", description: "TOTAL", amount: records.reduce((s, r) => s + (Number(r.amount) || 0), 0), photo: "" });
+        const totalRow = ws.addRow({ date: "", category: "", description: "TOTAL", amount: sortedRecords.reduce((s, r) => s + (Number(r.amount) || 0), 0), photo: "" });
         totalRow.font = { bold: true };
 
         const buf = await wb.xlsx.writeBuffer();
